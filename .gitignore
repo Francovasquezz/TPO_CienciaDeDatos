@@ -1,0 +1,10 @@
+.venv/
+data/**/*.csv
+data/**/*.parquet
+data/**/*.json
+data/raw/
+models/
+backend/.env
+.ipynb_checkpoints/
+__pycache__/
+.DS_Store
