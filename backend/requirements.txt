@@ -1,0 +1,20 @@
+# --- Core de la API ---
+fastapi
+uvicorn[standard]
+
+# --- Manejo de Datos (ETL) ---
+pandas
+pyarrow
+LanusStats
+
+# --- Machine Learning ---
+scikit-learn
+xgboost
+
+# --- Conexión a Base de Datos (para el despliegue) ---
+psycopg2-binary
+sqlalchemy
+
+# Dependencia requerida por LanusStats
+ipython
+webdriver-manager
