@@ -16,6 +16,10 @@ LEAGUE = "Primera Division Argentina"
 PAGE = "Fbref"
 SEASON_TO_FETCH = "2024"
 
+# switches de salida
+SAVE_CSV = True          # poné True si además querés CSV
+USE_CLEAN_SUFFIX = True  # poné True si querés sufijo ".clean" en el nombre
+
 JOIN_KEY = "Player"  # clave de unión principal
 
 
@@ -105,6 +109,25 @@ def coerce_numeric(df: pd.DataFrame, text_cols: set):
     return df
 
 
+def parse_age_like_fbref(s):
+    """Convierte 'YY-DDD' a años con decimales; si ya es número lo devuelve."""
+    if s is None or (isinstance(s, float) and np.isnan(s)):
+        return np.nan
+    s = str(s)
+    if "-" in s:
+        try:
+            y, d = s.split("-", 1)
+            y = int(y)
+            d = int("".join([ch for ch in d if ch.isdigit()]) or 0)
+            return round(y + d / 365, 2)
+        except Exception:
+            return np.nan
+    try:
+        return float(s)
+    except Exception:
+        return np.nan
+
+
 def sanitize_object_for_arrow(df: pd.DataFrame) -> pd.DataFrame:
     """Convierte columnas object/categorical a strings seguras para Arrow/Parquet."""
     df = df.copy()
@@ -136,6 +159,41 @@ def write_parquet_safe(df: pd.DataFrame, path: Path):
         df.to_parquet(path, index=False, engine="pyarrow")
     except Exception:
         df.to_parquet(path, index=False)
+
+
+# ---- Métricas específicas de arqueros (mapping desde keepers/keepersadv) ----
+GK_METRICS_MAP = {
+    # keepers (GK “clásico”)
+    "keepers_GA":          "GK_GA",
+    "keepers_GA90":        "GK_GA90",
+    "keepers_SoTA":        "GK_SoTA",
+    "keepers_Saves":       "GK_Saves",
+    "keepers_Save%":       "GK_SavePct",
+    "keepers_CS":          "GK_CS",
+    "keepers_CS%":         "GK_CSPct",
+    "keepers_PKatt":       "GK_PKAtt",
+    "keepers_PKA":         "GK_PKA",
+    "keepers_PKsv":        "GK_PKsv",
+    "keepers_PKm":         "GK_PKm",
+
+    # keepersadv (GK “avanzado”)
+    "keepersadv_PSxG":       "GK_PSxG",
+    "keepersadv_PSxG/SoT":   "GK_PSxG_per_SoT",
+    "keepersadv_PSxG+/-":    "GK_PSxG_PlusMinus",
+    "keepersadv_/90":        "GK_PSxG_PlusMinus_per90",
+    "keepersadv_Cmp":        "GK_PassCmp",
+    "keepersadv_Att":        "GK_PassAtt",
+    "keepersadv_Cmp%":       "GK_PassCmpPct",
+    "keepersadv_Att (GK)":   "GK_GKPassAtt",
+    "keepersadv_Thr":        "GK_Throws",
+    "keepersadv_Launch%":    "GK_LaunchPct",
+    "keepersadv_AvgLen":     "GK_AvgLen",
+    "keepersadv_Stp":        "GK_CrossesStp",
+    "keepersadv_Stp%":       "GK_CrossesStpPct",
+    "keepersadv_#OPA":       "GK_OPA",
+    "keepersadv_#OPA/90":    "GK_OPA90",
+    "keepersadv_AvgDist":    "GK_OPA_AvgDist",
+}
 
 
 # ---------- Pipeline ----------
@@ -239,6 +297,7 @@ def run_etl():
             "defense_Int": "Int",
         }
 
+        # mapeo efectivo con fallback por sufijo
         available = [c for c in metrics_map.keys() if c in raw_df.columns]
         if not available:
             fallback = []
@@ -265,18 +324,93 @@ def run_etl():
 
         df_processed = raw_df[list(effective_map.keys())].rename(columns=effective_map)
 
-        # tipado
+        # tipado base (¡NO incluye GK_* todavía!)
         text_cols = {"Player", "Nation", "Pos", "Squad", "Born"}
         df_processed = coerce_numeric(df_processed, text_cols=text_cols)
 
+        # -------------------------------------------------------
+        # Añadir métricas de arqueros desde keepers/keepersadv (robusto)
+        # -------------------------------------------------------
+        # 1) Detectar la mejor columna de "club" en RAW para poder mergear
+        squad_col_raw = None
+        for cand in ["Squad", "stats_Squad", "keepers_Squad", "keepersadv_Squad", "playingtime_Squad", "misc_Squad"]:
+            if cand in raw_df.columns:
+                squad_col_raw = cand
+                break
+
+        # 2) Tomar las columnas de GK que realmente existan en RAW
+        gk_src_cols = [c for c in GK_METRICS_MAP.keys() if c in raw_df.columns]
+        print("GK cols in RAW:", len(gk_src_cols), "| squad_col_raw:", squad_col_raw)
+
+        if gk_src_cols:
+            base_cols = [JOIN_KEY] + ([squad_col_raw] if squad_col_raw else [])
+            gk_df = raw_df[base_cols + gk_src_cols].copy()
+
+            # Renombrar: métricas -> GK_*, y si usamos squad_col_raw distinto, bajarlo a "Squad"
+            rename_map = {k: v for k, v in GK_METRICS_MAP.items() if k in gk_src_cols}
+            if squad_col_raw:
+                rename_map[squad_col_raw] = "Squad"
+            gk_df.rename(columns=rename_map, inplace=True)
+
+            # Merge: (Player,Squad) si está disponible; si no, solo Player.
+            merge_keys = [JOIN_KEY]
+            if "Squad" in df_processed.columns and "Squad" in gk_df.columns:
+                merge_keys.append("Squad")
+
+            df_processed = df_processed.merge(gk_df, on=merge_keys, how="left")
+
+            # Derivadas/normalizaciones útiles (si faltaran)
+            if {"GK_Saves", "GK_SoTA"}.issubset(df_processed.columns) and "GK_SavePct" not in df_processed.columns:
+                denom = df_processed["GK_SoTA"].replace(0, np.nan)
+                df_processed["GK_SavePct"] = (df_processed["GK_Saves"] / denom * 100).fillna(0).round(2)
+
+            if "Pos" in df_processed.columns and "IsGK" not in df_processed.columns:
+                df_processed["IsGK"] = df_processed["Pos"].str.contains("GK", case=False, na=False)
+        else:
+            print("Aviso: no se encontraron columnas de keepers/keepersadv en RAW; no se agregan métricas GK.")
+
+        # -------------------------------------------------------
+        # Dataset único: GK_* = NaN para NO arqueros + normalizaciones
+        # -------------------------------------------------------
+        if "IsGK" not in df_processed.columns:
+            df_processed["IsGK"] = df_processed["Pos"].str.contains("GK", case=False, na=False)
+
+        gk_cols_present = [c for c in df_processed.columns if c.startswith("GK_")]
+        for c in gk_cols_present:
+            df_processed[c] = pd.to_numeric(df_processed[c], errors="coerce")
+        if gk_cols_present:
+            df_processed.loc[~df_processed["IsGK"], gk_cols_present] = np.nan
+
+        # AgeYears desde Age
+        if "Age" in df_processed.columns and "AgeYears" not in df_processed.columns:
+            df_processed["AgeYears"] = df_processed["Age"].map(parse_age_like_fbref)
+
+        # Recalcular PassCmpPct
+        if {"PassCmp", "PassAtt"}.issubset(df_processed.columns):
+            denom = df_processed["PassAtt"].replace(0, np.nan)
+            df_processed["PassCmpPct"] = (df_processed["PassCmp"] / denom * 100).fillna(0).round(2)
+
+        # SoT <= Shots (cap defensivo)
+        if "SoT" in df_processed.columns and "Shots" in df_processed.columns:
+            df_processed.loc[df_processed["SoT"] > df_processed["Shots"], "SoT"] = df_processed["Shots"]
+
         # --- 3) LOAD ---
         print("Paso 3: Guardando dataset limpio en 'processed'...")
-        processed_file_name = f"player_stats_{LEAGUE.replace(' ', '_')}_{SEASON_TO_FETCH}.parquet"
-        processed_path = PROCESSED_DATA_PATH / processed_file_name
-        write_parquet_safe(df_processed, processed_path)
+
+        slug = LEAGUE.replace(" ", "_")
+        suffix = ".clean" if USE_CLEAN_SUFFIX else ""
+        base = f"player_stats_{slug}_{SEASON_TO_FETCH}{suffix}"
+
+        parquet_path = PROCESSED_DATA_PATH / f"{base}.parquet"
+        write_parquet_safe(df_processed, parquet_path)
+
+        if SAVE_CSV:
+            csv_path = PROCESSED_DATA_PATH / f"{base}.csv"
+            df_processed.to_csv(csv_path, index=False)
+            print(f"   CSV:     {csv_path}")
 
         print("\n✅ ETL finalizado correctamente.")
-        print(f"   Dataset limpio: {processed_path}")
+        print(f"   Parquet: {parquet_path}")
 
     except Exception as e:
         print(f"\nOcurrió un error inesperado durante el ETL: {e}")
