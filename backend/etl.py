@@ -1,4 +1,9 @@
-# backend/etl.py
+# backend/etl.py  (PARCHE)
+
+import os
+import argparse
+import uuid
+from typing import Optional, List
 
 import LanusStats as ls
 import pandas as pd
@@ -9,19 +14,36 @@ import numpy as np
 import unicodedata
 import re
 
-# --- CONFIGURACIÓN ---
+# --- CONFIG POR DEFECTO ---
 RAW_DATA_PATH = Path("data/raw")
 PROCESSED_DATA_PATH = Path("data/processed")
-LEAGUE = "Primera Division Argentina"
-PAGE = "Fbref"
-SEASON_TO_FETCH = "2024"
+DEFAULT_LEAGUE_NAME = "Primera Division Argentina"  # lo ajustamos abajo
+DEFAULT_SEASON = "2024"
 
-# switches de salida
-SAVE_CSV = True          # poné True si además querés CSV
-USE_CLEAN_SUFFIX = True  # poné True si querés sufijo ".clean" en el nombre
+# 👇 Globals que usa tu run_etl()
+LEAGUE = DEFAULT_LEAGUE_NAME
+SEASON_TO_FETCH = DEFAULT_SEASON
 
-JOIN_KEY = "Player"  # clave de unión principal
+# Alias de liga (usá el nombre EXACTO que acepta la lib)
+LEAGUE_ALIASES = {
+    "ARG1": "Primera Division Argentina",
+    "LPA":  "Primera Division Argentina",
 
+    "BRA1": "Brasileirao",                # no "Serie A"
+    "ENG1": "Premier League",
+    "ESP1": "La Liga",
+    "FRA1": "Ligue 1",
+    "GER1": "Bundesliga",
+    "ITA1": "Serie A",
+    "POR1": "Primeira Liga Portugal",     # ojo con el nombre exacto
+    # "NED1": "Eredivise",                # (si la usás, respeta la ortografía que devuelve LanusStats)
+}
+
+JOIN_KEY = "Player"
+SAVE_CSV = True
+USE_CLEAN_SUFFIX = True
+
+# -------------- (tus utilidades siguen igual desde acá hacia abajo) --------------
 
 # ---------- Utilidades ----------
 
@@ -418,4 +440,28 @@ def run_etl():
 
 
 if __name__ == "__main__":
+    import os, argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--league",
+        help="Código (ARG1) o nombre de liga",
+        default=os.getenv("LEAGUE", DEFAULT_LEAGUE_NAME),
+    )
+    parser.add_argument(
+        "--season",
+        help="Temporada, ej 2024",
+        default=os.getenv("SEASON", DEFAULT_SEASON),
+    )
+    args = parser.parse_args()
+
+    # código -> nombre real que entiende LanusStats
+    league_arg = str(args.league)
+    league_name = LEAGUE_ALIASES.get(league_arg.upper(), league_arg)
+
+    # setear globals que usa run_etl()
+    LEAGUE = league_name
+    SEASON_TO_FETCH = str(args.season)
+
+    print(f"[runner] LEAGUE='{LEAGUE}' | SEASON_TO_FETCH='{SEASON_TO_FETCH}'")
     run_etl()

@@ -1,0 +1,33 @@
+league_code,team_name,tm_team_id,tm_canonical_name
+ARG1,CA River Plate,209,Club Atletico River Plate
+ARG1,CA Boca Juniors,189,Club Atletico Boca Juniors
+ARG1,CA Velez Sarsfield,1029,Club Atletico Velez Sarsfield
+ARG1,CA Talleres,3938,Club Atletico Talleres
+ARG1,CA San Lorenzo de Almagro,1775,Club Atletico San Lorenzo
+ARG1,Racing Club,667,Racing Club
+ARG1,Club Estudiantes de La Plata,288,Estudiantes de La Plata
+ARG1,Defensa y Justicia,2402,Defensa y Justicia
+ARG1,CA Huracan,14596,Club Atletico Huracan
+ARG1,Club Atletico Tigre,11831,Club Atletico Tigre
+ARG1,AA Argentinos Juniors,1030,Argentinos Juniors
+ARG1,CA Banfield,830,Club Atletico Banfield
+ARG1,CA Barracas Central,25184,Club Atletico Barracas Central
+ARG1,CA Central Córdoba (SdE),,
+ARG1,CA Huracán,2063,Club Atletico Huracan
+ARG1,CA Independiente,1234,Club Atletico Independiente
+ARG1,CA Lanús,333,Club Atletico Lanus
+ARG1,CA Newell's Old Boys,1286,Club Atletico Newells Old Boys
+ARG1,CA Rosario Central,1418,Club Atletico Rosario Central
+ARG1,CA Sarmiento (Junin),,
+ARG1,CA Unión (Santa Fe),,
+ARG1,CA Vélez Sarsfield,1029,Club Atletico Velez Sarsfield
+ARG1,CD Godoy Cruz Antonio Tomba,12574,Club Deportivo Godoy Cruz Antonio Tomba
+ARG1,CS Independiente Rivadavia,12179,Independiente Rivadavia
+ARG1,Club Atlético Belgrano,2417,Ca Belgrano
+ARG1,Club Atlético Platense,928,Club Atletico Platense
+ARG1,Club Atlético Tigre,11831,Club Atletico Tigre
+ARG1,Club Atlético Tucumán,14554,Club Atletico Tucuman
+ARG1,Club Deportivo Riestra,19775,Cd Riestra
+ARG1,Club de Gimnasia y Esgrima La Plata,1106,Club De Gimnasia Y Esgrima La Plata
+ARG1,Instituto ACC,1829,Instituto Ac Cordoba
+# … completás el resto (una vez). Para otras ligas (ENG1, BRA1, etc.) igual.,

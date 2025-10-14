@@ -1,0 +1,12 @@
+leagues:
+  - code: ARG1
+    seasons: [2022, 2023, 2024]
+  - code: BRA1
+    seasons: [2022, 2023, 2024]
+  - code: ENG1
+    seasons: [2022, 2023, 2024]
+  - code: ESP1
+    seasons: [2022, 2023, 2024]
+  - code: POR1   # "under" candidata
+    seasons: [2022, 2023, 2024]
+sources: ["fbref", "transfermarkt"]
