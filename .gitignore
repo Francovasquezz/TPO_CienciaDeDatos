@@ -15,3 +15,7 @@ __pycache__/
 !data/processed/player_stats_Primera_Division_Argentina_2024.clean.parquet
 !data/processed/player_stats_Primera_Division_Argentina_2024.clean.csv
 !data/processed/*schema*.json
+.kaggle/
+kaggle.json
+data/external/*
+!data/external/.gitkeep

@@ -1,80 +1,133 @@
-import argparse, pandas as pd, unicodedata, uuid
-from rapidfuzz import fuzz, process
+# scripts/player_xref_builder.py
+import argparse, re, unicodedata
+from pathlib import Path
+import pandas as pd
+from rapidfuzz import process, fuzz
 
-def norm(s):
-    if pd.isna(s): return ""
-    s = s.strip().lower()
-    s = "".join(c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c))
-    return " ".join(s.split())
+def norm(s: str) -> str:
+    s = (s or "").strip().lower()
+    s = "".join(ch for ch in unicodedata.normalize("NFKD", s) if ch.isascii())
+    s = re.sub(r"\s+", " ", s)
+    return s
 
-def uuid5_player(primary_id: str, fallback: str = ""):
-    ns = uuid.UUID("12345678-1234-5678-1234-567812345678")  # fija para el proyecto
-    return str(uuid.uuid5(ns, f"{primary_id}|{fallback}"))
+def canon_date(s: str) -> str:
+    if s is None or (isinstance(s, float) and pd.isna(s)): return ""
+    digits = re.sub(r"[^0-9]", "", str(s))
+    if len(digits) >= 8: return digits[:8]   # YYYYMMDD
+    if len(digits) >= 4: return digits[:4]   # YYYY
+    return ""
 
-def build_xref(fbref_df, tm_df, det_score=96, fuzzy_score=90):
-    # columnas esperadas: name, dob(YYYY-MM-DD), team, nationality, height_cm, player_id (propio de la fuente)
-    fbref_df = fbref_df.copy()
-    tm_df = tm_df.copy()
-    for df in (fbref_df, tm_df):
-        for c in ["name","team","nationality"]:
-            if c in df.columns: df[c+"_n"] = df[c].map(norm)
-        if "dob" in df.columns: df["dob_n"] = df["dob"].fillna("")
-        if "height_cm" in df.columns: df["height_cm"] = pd.to_numeric(df["height_cm"], errors="coerce")
+def load_fbref(path: Path, league: str|None, season: str|None) -> pd.DataFrame:
+    df = pd.read_csv(path)
+    # renombres tolerantes
+    if "name" not in df.columns and "Player" in df.columns: df = df.rename(columns={"Player":"name"})
+    if "dob" not in df.columns and "Born" in df.columns:    df = df.rename(columns={"Born":"dob"})
+    # nationality puede venir como Nation / Nationality / country
+    for cand in ["nationality","Nation","Nationality","country"]:
+        if cand in df.columns:
+            if cand != "nationality":
+                df = df.rename(columns={cand:"nationality"})
+            break
+    if "nationality" not in df.columns:
+        df["nationality"] = ""
 
-    # 1) Match determinista estricto: name_n + dob_n (y opcional team_n)
-    det = pd.merge(
-        fbref_df, tm_df,
-        left_on=["name_n","dob_n"], right_on=["name_n","dob_n"],
-        suffixes=("_fb", "_tm")
-    )
-    det["match_type"] = "deterministic"
-    det["score"] = 100
+    # filtrar si están las columnas
+    if league and "league_code" in df.columns:
+        df = df[df["league_code"].astype(str).str.upper().eq(league.upper())]
+    if season and "season" in df.columns:
+        df = df[df["season"].astype(str).eq(str(season))]
 
-    # 2) Fuzzy por nombre (si no hay dob), filtrando por equipo/país/altura cuando ayuda
-    fb_left = fbref_df[~fbref_df["name_n"].isin(det["name_n"])]
-    candidates = []
-    for _, r in fb_left.iterrows():
-        pool = tm_df
-        if r.get("team_n"):
-            pool = pool[pool["team_n"] == r["team_n"]]
-            if pool.empty: pool = tm_df
-        match = process.extractOne(
-            r["name_n"], pool["name_n"].tolist(), scorer=fuzz.WRatio
-        )
-        if match and match[1] >= fuzzy_score:
-            tm_row = pool.iloc[pool["name_n"].tolist().index(match[0])]
-            candidates.append({
-                "name_n": r["name_n"], "dob_n": r.get("dob_n",""),
-                "player_id_fb": r.get("player_id",""),
-                "player_id_tm": tm_row.get("player_id",""),
-                "score": match[1],
-                "match_type": "fuzzy_team"
-            })
-    fuzzy = pd.DataFrame(candidates)
+    df["name_norm"] = df["name"].map(norm)
+    df["dob_key"]   = df["dob"].map(canon_date)
+    return df
 
-    # Unificación a xref
-    if not fuzzy.empty:
-        xref = pd.concat([
-            det[["player_id_fb","player_id_tm","score","match_type"]],
-            fuzzy[["player_id_fb","player_id_tm","score","match_type"]]
-        ], ignore_index=True).drop_duplicates(["player_id_fb","player_id_tm"])
-    else:
-        xref = det[["player_id_fb","player_id_tm","score","match_type"]].copy()
+def load_tm(path: Path) -> pd.DataFrame:
+    tm = pd.read_csv(path)
+    if "nationality" not in tm.columns:
+        # en nuestro import consolidado debería existir; si no, dejamos vacío
+        tm["nationality"] = ""
+    tm["name_norm"] = tm["name"].map(norm)
+    tm["dob_key"]   = tm["dob"].map(canon_date)
+    return tm
 
-    # Generar player_uuid (preferí el id de Transfermarkt como semilla estable)
-    xref["player_uuid"] = xref.apply(
-        lambda r: uuid5_player(r["player_id_tm"] or r["player_id_fb"], r["player_id_fb"]), axis=1
-    )
-    return xref
+def build_xref(fb: pd.DataFrame, tm: pd.DataFrame, fuzzy_threshold=92):
+    fb["k1"] = fb["name_norm"] + "|" + fb["dob_key"]
+    tm["k1"] = tm["name_norm"] + "|" + tm["dob_key"]
+
+    right_cols = ["k1","tm_player_id","market_value_eur","last_update","nationality"]
+    right_cols = [c for c in right_cols if c in tm.columns]  # por si falta algo
+    exact = fb.merge(tm[right_cols], on="k1", how="left")
+
+    # coalesce nationality (por si quedó _x/_y)
+    if "nationality" not in exact.columns:
+        nat_cols = [c for c in exact.columns if c.startswith("nationality")]
+        if "nationality_x" in nat_cols or "nationality_y" in nat_cols:
+            exact["nationality"] = exact.get("nationality_x", pd.Series(dtype=object)).fillna(
+                exact.get("nationality_y", pd.Series(dtype=object))
+            )
+            # limpia
+            drop_cols = [c for c in ["nationality_x","nationality_y"] if c in exact.columns]
+            if drop_cols:
+                exact.drop(columns=drop_cols, inplace=True)
+        else:
+            # si no hay en ninguna, creamos vacía
+            exact["nationality"] = ""
+
+    # Fuzzy para filas sin tm_id
+    exact["fuzzy_score"] = pd.NA
+    pending = exact[exact["tm_player_id"].isna()].copy()
+    if not pending.empty:
+        # índice por nacionalidad del TM
+        tm_by_nat = {}
+        for nat, chunk in tm.groupby(tm["nationality"].fillna("").map(norm)):
+            tm_by_nat[nat] = list(zip(chunk["name_norm"], chunk["tm_player_id"], chunk["market_value_eur"], chunk["last_update"]))
+        # fallback global
+        global_pool = list(zip(tm["name_norm"], tm["tm_player_id"], tm["market_value_eur"], tm["last_update"]))
+
+        for i, row in pending.iterrows():
+            name = row["name_norm"]
+            nat  = norm(row.get("nationality",""))
+            pool = tm_by_nat.get(nat, []) or global_pool
+            names = [p[0] for p in pool]
+            choice = process.extractOne(name, names, scorer=fuzz.WRatio)
+            if choice and choice[1] >= fuzzy_threshold:
+                idx = choice[2]
+                pid, val, upd = pool[idx][1], pool[idx][2], pool[idx][3]
+                exact.loc[i, "tm_player_id"] = pid
+                exact.loc[i, "market_value_eur"] = val
+                exact.loc[i, "last_update"] = upd
+                exact.loc[i, "fuzzy_score"] = choice[1]
+
+    # UUID simple (podés cambiar a hash estable si querés)
+    uu = (exact["name_norm"].fillna("") + "|" + exact["dob_key"].fillna(""))
+    exact["player_uuid"] = uu.where(uu != "", None)
+    return exact
+
+def main(fbref_csv: str, tm_csv: str, outdir: str, league: str|None, season: str|None):
+    out = Path(outdir); out.mkdir(parents=True, exist_ok=True)
+    fb = load_fbref(Path(fbref_csv), league, season)
+    tm = load_tm(Path(tm_csv))
+    joined = build_xref(fb, tm)
+
+    # Dump completos
+    joined.to_csv(out/"player_values_joined.csv", index=False)
+
+    # XREF resumido siempre con columna nationality (ya coalescida)
+    cols = ["player_uuid","name","dob","nationality","tm_player_id","market_value_eur","last_update","fuzzy_score"]
+    for c in cols:
+        if c not in joined.columns:
+            joined[c] = pd.NA
+    joined[cols].to_csv(out/"player_xref.csv", index=False)
+
+    print("OK ->", out/"player_values_joined.csv")
+    print("OK ->", out/"player_xref.csv")
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--fbref", default="data/processed/fbref_players.csv")
-    ap.add_argument("--tm",    default="data/processed/transfermarkt_players.csv")
-    ap.add_argument("--out",   default="data/processed/player_xref.csv")
+    ap.add_argument("--tm",    default="data/processed/tm_market_values_latest.csv")
+    ap.add_argument("--out",   default="data/processed")
+    ap.add_argument("--league", default=None)
+    ap.add_argument("--season", default=None)
     args = ap.parse_args()
-    fb = pd.read_csv(args.fbref)
-    tm = pd.read_csv(args.tm)
-    xref = build_xref(fb, tm)
-    xref.to_csv(args.out, index=False)
-    print(f"OK -> {args.out} ({len(xref)} matches)")
+    main(args.fbref, args.tm, args.out, args.league, args.season)

@@ -29,4 +29,7 @@ requests             # si tu ETL descarga desde web
 ipython
 webdriver-manager
 beautifulsoup4
+kaggle
+rapidfuzz
+
 
