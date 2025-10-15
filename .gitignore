@@ -8,14 +8,7 @@ backend/.env
 .ipynb_checkpoints/
 __pycache__/
 .DS_Store
-# ---- Mantener SOLO los artefactos finales limpios ----
-# Ya ignoramos data/**/*.parquet|csv|json arriba;
-# estas negaciones re-incluyen los archivos canónicos.
+
+# ---- Mantener TODOS los artefactos de processed ----
 !data/processed/
-!data/processed/player_stats_Primera_Division_Argentina_2024.clean.parquet
-!data/processed/player_stats_Primera_Division_Argentina_2024.clean.csv
-!data/processed/*schema*.json
-.kaggle/
-kaggle.json
-data/external/*
-!data/external/.gitkeep
+!data/processed/**
