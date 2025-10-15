@@ -31,5 +31,9 @@ webdriver-manager
 beautifulsoup4
 kaggle
 rapidfuzz
+tyrone-mings
+beautifulsoup4
+lxml
+
 
 
