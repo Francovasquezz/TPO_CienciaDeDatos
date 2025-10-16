@@ -1,4 +1,5 @@
 # scripts/tm_collect_league.py
+from __future__ import annotations
 import argparse
 import time
 import re
@@ -6,17 +7,43 @@ from pathlib import Path
 import random
 
 import pandas as pd
-import requests
 from bs4 import BeautifulSoup
 import cloudscraper # <-- AÑADE ESTA LÍNEA
 import LanusStats as ls
 
-HEADERS = {
-    "User-Agent": "Mozilla/5.0",
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 "
+    "(KHTML, like Gecko) Version/17.4 Safari/605.1.15",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/122.0.0.0 Safari/537.36",
+]
+
+BASE_HEADERS = {
     "Accept-Language": "es-AR,es;q=0.9,en;q=0.8",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Referer": "https://www.transfermarkt.com.ar/",
 }
+
+CHALLENGE_PATTERNS = (
+    "cf-browser-verification",
+    "cf-chl-captcha",
+    "Attention Required! | Cloudflare",
+    "checking your browser before accessing",
+)
+
+
+def build_scraper() -> tuple[cloudscraper.CloudScraper, str]:
+    """Crear un scraper con un User-Agent aleatorio y cabeceras base."""
+    ua = random.choice(USER_AGENTS)
+    scraper = cloudscraper.create_scraper(
+        browser={"browser": "chrome", "platform": "windows", "mobile": False},
+        delay=random.uniform(0.3, 1.2),
+    )
+    scraper.headers.update({"User-Agent": ua, **BASE_HEADERS})
+    return scraper, ua
 
 def tm_value_to_eur(s: str) -> float | None:
     if s is None:
@@ -45,19 +72,36 @@ def pick_col(df: pd.DataFrame, candidates: list[str]) -> str | None:
             return df.columns[cols.index(cand.lower())]
     return None
 
-def bs_get(url: str) -> BeautifulSoup | None:
-    # MUEVE la creación del scraper AQUÍ DENTRO.
-    # Esto crea una sesión nueva y limpia para cada petición.
-    scraper = cloudscraper.create_scraper()
-    try:
-        r = scraper.get(url, timeout=30)
-        print(f" | Status: {r.status_code}", end="")
-        if r.status_code != 200:
-            return None
-        return BeautifulSoup(r.text, "lxml")
-    except Exception as e:
-        print(f" | Request Error: {e}", end="")
-        return None
+def _looks_like_challenge(html: str) -> bool:
+    lower = html.lower()
+    return any(token.lower() in lower for token in CHALLENGE_PATTERNS)
+
+
+def bs_get(url: str, *, max_attempts: int = 5) -> BeautifulSoup | None:
+    """Realizar la petición con reintentos y esperas aleatorias para evitar bloqueos."""
+    for attempt in range(1, max_attempts + 1):
+        scraper, ua = build_scraper()
+        try:
+            r = scraper.get(url, timeout=30)
+        except Exception as e:
+            print(f" | Request Error (UA {ua[:18]}...): {e}", end="")
+            sleep_for = min(15, attempt * 2) + random.uniform(0, 1.5)
+            time.sleep(sleep_for)
+            continue
+
+        status = r.status_code
+        print(f" | Status: {status}", end="")
+        if status == 200 and not _looks_like_challenge(r.text):
+            return BeautifulSoup(r.text, "lxml")
+
+        # Si Cloudflare bloquea (403/404/429) o detectamos challenge, esperamos y reintentamos
+        block_reason = "challenge" if _looks_like_challenge(r.text) else status
+        wait_base = 5 if attempt < 3 else 20
+        sleep_for = wait_base + random.uniform(0, 10)
+        print(f" | Blocked ({block_reason}). Waiting {sleep_for:.1f}s", end="")
+        time.sleep(sleep_for)
+
+    return None
 
 def fallback_scrape_tm_squad(team_id: str, season: str) -> pd.DataFrame:
     """
