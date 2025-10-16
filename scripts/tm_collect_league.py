@@ -10,18 +10,11 @@ import pandas as pd
 from bs4 import BeautifulSoup
 import cloudscraper # <-- AÑADE ESTA LÍNEA
 import LanusStats as ls
+import undetected_chromedriver as uc
+from bs4 import BeautifulSoup
 
-USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 "
-    "(KHTML, like Gecko) Version/17.4 Safari/605.1.15",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/122.0.0.0 Safari/537.36",
-]
-
-BASE_HEADERS = {
+HEADERS = {
+    "User-Agent": "Mozilla/5.0",
     "Accept-Language": "es-AR,es;q=0.9,en;q=0.8",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Referer": "https://www.transfermarkt.com.ar/",
@@ -72,36 +65,42 @@ def pick_col(df: pd.DataFrame, candidates: list[str]) -> str | None:
             return df.columns[cols.index(cand.lower())]
     return None
 
-def _looks_like_challenge(html: str) -> bool:
-    lower = html.lower()
-    return any(token.lower() in lower for token in CHALLENGE_PATTERNS)
+def bs_get(url: str) -> BeautifulSoup | None:
+    """
+    Usa un navegador real (Chrome) en modo headless para evitar Cloudflare.
+    """
+    # Configura las opciones del navegador
+    options = uc.ChromeOptions()
+    options.add_argument('--headless')  # Para que no se abra una ventana visible del navegador
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
 
+    driver = None  # Inicializa la variable driver
+    try:
+        print(" | Launching browser...", end="")
+        driver = uc.Chrome(options=options, use_subprocess=True)
+        driver.get(url)
 
-def bs_get(url: str, *, max_attempts: int = 5) -> BeautifulSoup | None:
-    """Realizar la petición con reintentos y esperas aleatorias para evitar bloqueos."""
-    for attempt in range(1, max_attempts + 1):
-        scraper, ua = build_scraper()
-        try:
-            r = scraper.get(url, timeout=30)
-        except Exception as e:
-            print(f" | Request Error (UA {ua[:18]}...): {e}", end="")
-            sleep_for = min(15, attempt * 2) + random.uniform(0, 1.5)
-            time.sleep(sleep_for)
-            continue
+        # Espera crucial para que Cloudflare haga su magia y cargue la página
+        time.sleep(5) # Dale 5 segundos para que resuelva cualquier desafío de JS
 
-        status = r.status_code
-        print(f" | Status: {status}", end="")
-        if status == 200 and not _looks_like_challenge(r.text):
-            return BeautifulSoup(r.text, "lxml")
+        page_source = driver.page_source
 
-        # Si Cloudflare bloquea (403/404/429) o detectamos challenge, esperamos y reintentamos
-        block_reason = "challenge" if _looks_like_challenge(r.text) else status
-        wait_base = 5 if attempt < 3 else 20
-        sleep_for = wait_base + random.uniform(0, 10)
-        print(f" | Blocked ({block_reason}). Waiting {sleep_for:.1f}s", end="")
-        time.sleep(sleep_for)
+        # Comprobación de que no estamos en una página de "Access denied"
+        if "Access denied" in page_source or "error code: 1020" in page_source:
+            print(" | Blocked by Cloudflare (Access Denied)!", end="")
+            return None
 
-    return None
+        print(f" | Page loaded successfully.", end="")
+        return BeautifulSoup(page_source, "lxml")
+
+    except Exception as e:
+        print(f" | Browser Error: {e}", end="")
+        return None
+    finally:
+        # Asegúrate de que el navegador se cierre siempre
+        if driver:
+            driver.quit()
 
 def fallback_scrape_tm_squad(team_id: str, season: str) -> pd.DataFrame:
     """

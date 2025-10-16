@@ -35,5 +35,7 @@ tyrone-mings
 beautifulsoup4
 lxml
 cloudscraper
-
+selenium 
+webdriver-manager 
+undetected-chromedriver
 
