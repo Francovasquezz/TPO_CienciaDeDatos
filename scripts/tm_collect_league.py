@@ -1,5 +1,4 @@
 # scripts/tm_collect_league.py
-from __future__ import annotations
 import argparse
 import time
 import re
@@ -7,11 +6,10 @@ from pathlib import Path
 import random
 
 import pandas as pd
+import requests
 from bs4 import BeautifulSoup
 import cloudscraper # <-- AÑADE ESTA LÍNEA
 import LanusStats as ls
-import undetected_chromedriver as uc
-from bs4 import BeautifulSoup
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0",
@@ -19,24 +17,6 @@ HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Referer": "https://www.transfermarkt.com.ar/",
 }
-
-CHALLENGE_PATTERNS = (
-    "cf-browser-verification",
-    "cf-chl-captcha",
-    "Attention Required! | Cloudflare",
-    "checking your browser before accessing",
-)
-
-
-def build_scraper() -> tuple[cloudscraper.CloudScraper, str]:
-    """Crear un scraper con un User-Agent aleatorio y cabeceras base."""
-    ua = random.choice(USER_AGENTS)
-    scraper = cloudscraper.create_scraper(
-        browser={"browser": "chrome", "platform": "windows", "mobile": False},
-        delay=random.uniform(0.3, 1.2),
-    )
-    scraper.headers.update({"User-Agent": ua, **BASE_HEADERS})
-    return scraper, ua
 
 def tm_value_to_eur(s: str) -> float | None:
     if s is None:
@@ -66,41 +46,18 @@ def pick_col(df: pd.DataFrame, candidates: list[str]) -> str | None:
     return None
 
 def bs_get(url: str) -> BeautifulSoup | None:
-    """
-    Usa un navegador real (Chrome) en modo headless para evitar Cloudflare.
-    """
-    # Configura las opciones del navegador
-    options = uc.ChromeOptions()
-    options.add_argument('--headless')  # Para que no se abra una ventana visible del navegador
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-dev-shm-usage')
-
-    driver = None  # Inicializa la variable driver
+    # MUEVE la creación del scraper AQUÍ DENTRO.
+    # Esto crea una sesión nueva y limpia para cada petición.
+    scraper = cloudscraper.create_scraper()
     try:
-        print(" | Launching browser...", end="")
-        driver = uc.Chrome(options=options, use_subprocess=True)
-        driver.get(url)
-
-        # Espera crucial para que Cloudflare haga su magia y cargue la página
-        time.sleep(5) # Dale 5 segundos para que resuelva cualquier desafío de JS
-
-        page_source = driver.page_source
-
-        # Comprobación de que no estamos en una página de "Access denied"
-        if "Access denied" in page_source or "error code: 1020" in page_source:
-            print(" | Blocked by Cloudflare (Access Denied)!", end="")
+        r = scraper.get(url, timeout=30)
+        print(f" | Status: {r.status_code}", end="")
+        if r.status_code != 200:
             return None
-
-        print(f" | Page loaded successfully.", end="")
-        return BeautifulSoup(page_source, "lxml")
-
+        return BeautifulSoup(r.text, "lxml")
     except Exception as e:
-        print(f" | Browser Error: {e}", end="")
+        print(f" | Request Error: {e}", end="")
         return None
-    finally:
-        # Asegúrate de que el navegador se cierre siempre
-        if driver:
-            driver.quit()
 
 def fallback_scrape_tm_squad(team_id: str, season: str) -> pd.DataFrame:
     """
