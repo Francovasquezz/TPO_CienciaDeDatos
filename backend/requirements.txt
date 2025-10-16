@@ -34,6 +34,6 @@ rapidfuzz
 tyrone-mings
 beautifulsoup4
 lxml
-
+cloudscraper
 
 
