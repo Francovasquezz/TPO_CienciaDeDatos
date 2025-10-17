@@ -38,4 +38,8 @@ cloudscraper
 selenium 
 webdriver-manager 
 undetected-chromedriver
-
+playwright 
+pandas
+chromium
+unidecode
+rapidfuzz
