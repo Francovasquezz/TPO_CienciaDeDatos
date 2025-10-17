@@ -10,6 +10,8 @@ import requests
 from bs4 import BeautifulSoup
 import cloudscraper # <-- AÑADE ESTA LÍNEA
 import LanusStats as ls
+import undetected_chromedriver as uc
+from bs4 import BeautifulSoup
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0",
@@ -46,18 +48,41 @@ def pick_col(df: pd.DataFrame, candidates: list[str]) -> str | None:
     return None
 
 def bs_get(url: str) -> BeautifulSoup | None:
-    # MUEVE la creación del scraper AQUÍ DENTRO.
-    # Esto crea una sesión nueva y limpia para cada petición.
-    scraper = cloudscraper.create_scraper()
+    """
+    Usa un navegador real (Chrome) en modo headless para evitar Cloudflare.
+    """
+    # Configura las opciones del navegador
+    options = uc.ChromeOptions()
+    options.add_argument('--headless')  # Para que no se abra una ventana visible del navegador
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
+
+    driver = None  # Inicializa la variable driver
     try:
-        r = scraper.get(url, timeout=30)
-        print(f" | Status: {r.status_code}", end="")
-        if r.status_code != 200:
+        print(" | Launching browser...", end="")
+        driver = uc.Chrome(options=options, use_subprocess=True)
+        driver.get(url)
+
+        # Espera crucial para que Cloudflare haga su magia y cargue la página
+        time.sleep(5) # Dale 5 segundos para que resuelva cualquier desafío de JS
+
+        page_source = driver.page_source
+
+        # Comprobación de que no estamos en una página de "Access denied"
+        if "Access denied" in page_source or "error code: 1020" in page_source:
+            print(" | Blocked by Cloudflare (Access Denied)!", end="")
             return None
-        return BeautifulSoup(r.text, "lxml")
+
+        print(f" | Page loaded successfully.", end="")
+        return BeautifulSoup(page_source, "lxml")
+
     except Exception as e:
-        print(f" | Request Error: {e}", end="")
+        print(f" | Browser Error: {e}", end="")
         return None
+    finally:
+        # Asegúrate de que el navegador se cierre siempre
+        if driver:
+            driver.quit()
 
 def fallback_scrape_tm_squad(team_id: str, season: str) -> pd.DataFrame:
     """
