@@ -12,6 +12,56 @@
 #
 # Salida: dob ISO, breakdown por método.
 
+# ============================================================
+# JOIN FBref ↔ Transfermarkt — jugador/club/temporada
+# ------------------------------------------------------------
+# Propósito
+#   Unir el dataset “clean” de FBref con los valores de mercado de
+#   Transfermarkt por jugador/club/temporada, usando normalización de
+#   nombre y varias heurísticas de emparejamiento (exactas y fuzzy).
+#
+# Entradas (flags)
+#   --fbref    : CSV de FBref limpio (salida de backend/etl.py), p.ej.:
+#                data/processed/player_stats_Premier_League_2024-2025.clean.csv
+#   --tm       : CSV de TM (salida del scraper), p.ej.:
+#                data/processed/tm_values_GB1_2024_latest.csv
+#   --out      : CSV de salida con las columnas de FBref + TM_Value_EUR
+#   --season-year           : 'YYYY' (ej. 2024 para 24/25). Se usa en claves auxiliares.
+#   --fuzzy-global-thresh   : umbral de similitud (0–100) para emparejamiento fuzzy
+#                             global (recomendado 90–94; default del repo).
+#
+# Salidas
+#   - data/processed/<archivo_out>.csv  (dataset unido)
+#   - data/tmp/unmatched_<LIGA>_<YYYY>.csv  (muestras no matcheadas para diagnóstico)
+#   - Log de breakdown con conteo por heurística: 
+#       first+last+birth_year, key+birth_year, key_no_year,
+#       fuzzy_global(x%), fuzzy_club(x%), first+last+club+birth_year, etc.
+#
+# Heurísticas (resumen)
+#   1) Exactas sobre claves normalizadas (first/last, birth_year, club).
+#   2) “key” normalizada (nombre sin acentos/espacios) + (opcional) birth_year.
+#   3) Fuzzy matching global (ratio ≥ umbral) y por club.
+#   4) Fall-back: key sin año si no hay DOB.
+#
+# Buenas prácticas
+#   - Alinear formatos de temporada: FBref usa '2024-2025'; TM → season_id '2024'.
+#   - Mantener nombres de club consistentes (normalizador ya maneja “&”, apóstrofos,
+#     acentos y espacios; los extremos pueden quedar en unmatched).
+#   - Ajustar `--fuzzy-global-thresh` si hay muchos pocos matches o demasiados falsos.
+#
+# Ejemplos
+#   Premier League 24/25:
+#     python scripts/join_tm_fbref.py `
+#       --fbref "data/processed/player_stats_Premier_League_2024-2025.clean.csv" `
+#       --tm    "data/processed/tm_values_GB1_2024_latest.csv" `
+#       --out   "data/processed/join_pl_2024_2025.csv" `
+#       --season-year 2024 `
+#       --fuzzy-global-thresh 92
+#
+#   (Cobertura esperada ~95–97% sin mapping manual; unmatched quedan en data/tmp/)
+# ============================================================
+
+
 import argparse, os, re
 import pandas as pd
 from unidecode import unidecode

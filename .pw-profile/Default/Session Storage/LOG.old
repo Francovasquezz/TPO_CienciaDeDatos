@@ -1,3 +1,30 @@
-2025/10/17-05:34:27.936 2c4c Reusing MANIFEST C:\Users\FrancoPC\OneDrive\Desktop\TPO_CienciaDeDatos\.pw-profile\Default\Session Storage/MANIFEST-000001
-2025/10/17-05:34:27.939 2c4c Recovering log #37
-2025/10/17-05:34:27.942 2c4c Reusing old log C:\Users\FrancoPC\OneDrive\Desktop\TPO_CienciaDeDatos\.pw-profile\Default\Session Storage/000037.log 
+2025/10/17-05:35:14.947 2940 Reusing MANIFEST C:\Users\FrancoPC\OneDrive\Desktop\TPO_CienciaDeDatos\.pw-profile\Default\Session Storage/MANIFEST-000001
+2025/10/17-05:35:14.947 2940 Recovering log #37
+2025/10/17-05:35:14.951 2940 Reusing old log C:\Users\FrancoPC\OneDrive\Desktop\TPO_CienciaDeDatos\.pw-profile\Default\Session Storage/000037.log 
+2025/10/17-05:35:24.837 73b4 Level-0 table #41: started
+2025/10/17-05:35:24.841 73b4 Level-0 table #41: 24463 bytes OK
+2025/10/17-05:35:24.842 73b4 Delete type=0 #37
+2025/10/17-05:38:29.992 73b4 Level-0 table #43: started
+2025/10/17-05:38:29.997 73b4 Level-0 table #43: 23849 bytes OK
+2025/10/17-05:38:29.998 73b4 Delete type=0 #40
+2025/10/17-05:41:21.819 73b4 Level-0 table #45: started
+2025/10/17-05:41:21.823 73b4 Level-0 table #45: 21601 bytes OK
+2025/10/17-05:41:21.824 73b4 Delete type=0 #42
+2025/10/17-05:41:21.825 73b4 Compacting 4@0 + 1@1 files
+2025/10/17-05:41:21.830 73b4 Generated table #46@0: 358 keys, 44567 bytes
+2025/10/17-05:41:21.830 73b4 Compacted 4@0 + 1@1 files => 44567 bytes
+2025/10/17-05:41:21.831 73b4 compacted to: files[ 0 1 1 0 0 0 0 ]
+2025/10/17-05:41:21.831 73b4 Delete type=2 #36
+2025/10/17-05:41:21.831 73b4 Delete type=2 #38
+2025/10/17-05:41:21.831 73b4 Delete type=2 #41
+2025/10/17-05:41:21.832 73b4 Delete type=2 #43
+2025/10/17-05:41:21.832 73b4 Delete type=2 #45
+2025/10/17-05:44:21.341 73b4 Level-0 table #48: started
+2025/10/17-05:44:21.345 73b4 Level-0 table #48: 25125 bytes OK
+2025/10/17-05:44:21.346 73b4 Delete type=0 #44
+2025/10/17-05:46:30.922 73b4 Level-0 table #50: started
+2025/10/17-05:46:30.927 73b4 Level-0 table #50: 17694 bytes OK
+2025/10/17-05:46:30.928 73b4 Delete type=0 #47
+2025/10/17-05:49:23.945 73b4 Level-0 table #52: started
+2025/10/17-05:49:23.949 73b4 Level-0 table #52: 22344 bytes OK
+2025/10/17-05:49:23.950 73b4 Delete type=0 #49

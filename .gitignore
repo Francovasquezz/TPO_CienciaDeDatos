@@ -12,3 +12,9 @@ __pycache__/
 # ---- Mantener TODOS los artefactos de processed ----
 !data/processed/
 !data/processed/**
+# Playwright
+.pw-profile/
+.pw-tm/
+playwright-report/
+# Temp
+data/tmp/

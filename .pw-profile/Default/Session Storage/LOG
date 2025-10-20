@@ -1,30 +1,37 @@
-2025/10/17-05:35:14.947 2940 Reusing MANIFEST C:\Users\FrancoPC\OneDrive\Desktop\TPO_CienciaDeDatos\.pw-profile\Default\Session Storage/MANIFEST-000001
-2025/10/17-05:35:14.947 2940 Recovering log #37
-2025/10/17-05:35:14.951 2940 Reusing old log C:\Users\FrancoPC\OneDrive\Desktop\TPO_CienciaDeDatos\.pw-profile\Default\Session Storage/000037.log 
-2025/10/17-05:35:24.837 73b4 Level-0 table #41: started
-2025/10/17-05:35:24.841 73b4 Level-0 table #41: 24463 bytes OK
-2025/10/17-05:35:24.842 73b4 Delete type=0 #37
-2025/10/17-05:38:29.992 73b4 Level-0 table #43: started
-2025/10/17-05:38:29.997 73b4 Level-0 table #43: 23849 bytes OK
-2025/10/17-05:38:29.998 73b4 Delete type=0 #40
-2025/10/17-05:41:21.819 73b4 Level-0 table #45: started
-2025/10/17-05:41:21.823 73b4 Level-0 table #45: 21601 bytes OK
-2025/10/17-05:41:21.824 73b4 Delete type=0 #42
-2025/10/17-05:41:21.825 73b4 Compacting 4@0 + 1@1 files
-2025/10/17-05:41:21.830 73b4 Generated table #46@0: 358 keys, 44567 bytes
-2025/10/17-05:41:21.830 73b4 Compacted 4@0 + 1@1 files => 44567 bytes
-2025/10/17-05:41:21.831 73b4 compacted to: files[ 0 1 1 0 0 0 0 ]
-2025/10/17-05:41:21.831 73b4 Delete type=2 #36
-2025/10/17-05:41:21.831 73b4 Delete type=2 #38
-2025/10/17-05:41:21.831 73b4 Delete type=2 #41
-2025/10/17-05:41:21.832 73b4 Delete type=2 #43
-2025/10/17-05:41:21.832 73b4 Delete type=2 #45
-2025/10/17-05:44:21.341 73b4 Level-0 table #48: started
-2025/10/17-05:44:21.345 73b4 Level-0 table #48: 25125 bytes OK
-2025/10/17-05:44:21.346 73b4 Delete type=0 #44
-2025/10/17-05:46:30.922 73b4 Level-0 table #50: started
-2025/10/17-05:46:30.927 73b4 Level-0 table #50: 17694 bytes OK
-2025/10/17-05:46:30.928 73b4 Delete type=0 #47
-2025/10/17-05:49:23.945 73b4 Level-0 table #52: started
-2025/10/17-05:49:23.949 73b4 Level-0 table #52: 22344 bytes OK
-2025/10/17-05:49:23.950 73b4 Delete type=0 #49
+2025/10/20-19:12:42.498 6750 Reusing MANIFEST C:\Users\FrancoPC\OneDrive\Desktop\TPO_CienciaDeDatos\.pw-profile\Default\Session Storage/MANIFEST-000001
+2025/10/20-19:12:42.506 6750 Recovering log #51
+2025/10/20-19:12:42.506 6750 Level-0 table #54: started
+2025/10/20-19:12:42.518 6750 Level-0 table #54: 19683 bytes OK
+2025/10/20-19:12:42.522 6750 Delete type=0 #51
+2025/10/20-19:12:42.523 4494 Compacting 4@0 + 1@1 files
+2025/10/20-19:12:42.534 4494 Generated table #56@0: 395 keys, 84969 bytes
+2025/10/20-19:12:42.534 4494 Compacted 4@0 + 1@1 files => 84969 bytes
+2025/10/20-19:12:42.534 4494 compacted to: files[ 0 1 1 0 0 0 0 ]
+2025/10/20-19:12:42.535 4494 Delete type=2 #46
+2025/10/20-19:12:42.535 4494 Delete type=2 #48
+2025/10/20-19:12:42.535 4494 Delete type=2 #50
+2025/10/20-19:12:42.535 4494 Delete type=2 #52
+2025/10/20-19:12:42.535 4494 Delete type=2 #54
+2025/10/20-19:14:25.261 6750 Level-0 table #58: started
+2025/10/20-19:14:25.265 6750 Level-0 table #58: 16758 bytes OK
+2025/10/20-19:14:25.266 6750 Delete type=0 #55
+2025/10/20-19:18:03.121 6750 Level-0 table #60: started
+2025/10/20-19:18:03.124 6750 Level-0 table #60: 21270 bytes OK
+2025/10/20-19:18:03.124 6750 Delete type=0 #57
+2025/10/20-19:21:13.021 6750 Level-0 table #62: started
+2025/10/20-19:21:13.026 6750 Level-0 table #62: 20597 bytes OK
+2025/10/20-19:21:13.027 6750 Delete type=0 #59
+2025/10/20-19:24:14.878 6750 Level-0 table #64: started
+2025/10/20-19:24:14.881 6750 Level-0 table #64: 20815 bytes OK
+2025/10/20-19:24:14.882 6750 Delete type=0 #61
+2025/10/20-19:24:14.883 6750 Compacting 4@0 + 1@1 files
+2025/10/20-19:24:14.887 6750 Generated table #65@0: 459 keys, 54134 bytes
+2025/10/20-19:24:14.887 6750 Compacted 4@0 + 1@1 files => 54134 bytes
+2025/10/20-19:24:14.888 6750 compacted to: files[ 0 1 1 0 0 0 0 ]
+2025/10/20-19:24:14.888 6750 Delete type=2 #56
+2025/10/20-19:24:14.888 6750 Delete type=2 #58
+2025/10/20-19:24:14.888 6750 Delete type=2 #60
+2025/10/20-19:24:14.888 6750 Delete type=2 #62
+2025/10/20-19:24:14.888 6750 Delete type=2 #64
+2025/10/20-19:26:43.128 4494 Level-0 table #67: started
+2025/10/20-19:26:43.140 4494 Level-0 table #67: 19686 bytes OK

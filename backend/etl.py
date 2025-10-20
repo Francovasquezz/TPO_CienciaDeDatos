@@ -1,4 +1,55 @@
 # backend/etl.py  (PARCHE)
+# ============================================================
+# ETL FBref — Liga/Temporada → tablas de jugador → raw + clean
+# ------------------------------------------------------------
+# Propósito
+#   Extrae estadísticas de jugadores desde FBref (vía LanusStats),
+#   hace pre-limpieza/normalización, uniones seguras por "Player",
+#   agrega métricas de arqueros (keepers/keepersadv) y serializa:
+#   - data/raw/raw_merged_<SEASON>.parquet (merge “bruto”)
+#   - data/processed/player_stats_<LEAGUE>_<SEASON>.clean.(csv|parquet)
+#
+# Entradas (flags/env)
+#   --league  : código o nombre que LanusStats reconoce. Ej:
+#               "ARG1", "ENG1", "Premier League", "Primera Division Argentina".
+#               (ver LEAGUE_ALIASES para alias → nombre real)
+#   --season  : temporada en el formato que FBref/LanusStats espera.
+#               OJO: FBref usa 'YYYY-YYYY' para ligas europeas (p.ej. '2024-2025').
+#               Para ligas calendario (ARG), suele ser '2024'.
+#
+# Salidas
+#   data/raw/raw_merged_<SEASON>.parquet         (todas las tablas unidas “as-is”)
+#   data/processed/player_stats_<LEAGUE>_<SEASON>.clean.csv/parquet
+#   Columnas base (mapeadas): Player, Nation, Pos, Squad, Age, Born,
+#     MatchesPlayed, Gls, Ast, xG, xAG, Shots, SoT, PassCmp, PassAtt,
+#     PassCmpPct, Tkl, TklW, Blocks, Int, y métricas GK_* cuando existan.
+#
+# Flujo (resumen)
+#   1) EXTRAER: Fbref().get_all_player_season_stats(league, season)
+#   2) PREP: aplanar columnas, normalizar clave JOIN (Player), de-duplicar,
+#      prefijar columnas para evitar choques y guardar raw_merged.
+#   3) UNIR: reduce() con merge seguro (evita colisiones de nombres).
+#   4) MAPEO: seleccionar/renombrar métricas clave; tipado numérico seguro.
+#   5) GK: detectar keepers* en raw y agregar métricas GK_* (con %/derivadas).
+#   6) NORMALIZAR: IsGK, AgeYears, recalcular PassCmpPct, cap SoT<=Shots.
+#   7) GUARDAR: CSV + Parquet en data/processed.
+#
+# Particularidades / gotchas
+#   - LEAGUE_ALIASES resuelve códigos a nombres exactos que entiende LanusStats.
+#   - Temporadas: para Premier League usar ‘2024-2025’. Si usás '2024/2025',
+#     LanusStats lanza InvalidSeasonException.
+#   - JOIN por “Player” se hace sobre nombre normalizado (sin acentos, espacios).
+#   - Si una tabla no trae “Player”, se descarta en el merge final.
+#   - Guarda parquet con saneo Arrow (nombres únicos, objetos→string).
+#
+# Ejemplos
+#   Premier League 24/25 (FBref usa '2024-2025'):
+#     python backend/etl.py --league "Premier League" --season "2024-2025"
+#
+#   Argentina 2024:
+#     python backend/etl.py --league "ARG1" --season "2024"
+# ============================================================
+
 
 import os
 import argparse
@@ -21,8 +72,8 @@ DEFAULT_LEAGUE_NAME = "Primera Division Argentina"  # lo ajustamos abajo
 DEFAULT_SEASON = "2024"
 
 # 👇 Globals que usa tu run_etl()
-LEAGUE = DEFAULT_LEAGUE_NAME
-SEASON_TO_FETCH = DEFAULT_SEASON
+LEAGUE = "Premier League"
+SEASON_TO_FETCH = "2024/2025"
 
 # Alias de liga (usá el nombre EXACTO que acepta la lib)
 LEAGUE_ALIASES = {
