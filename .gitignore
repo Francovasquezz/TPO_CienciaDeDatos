@@ -1,20 +1,32 @@
-.venv/
-data/**/*.csv
-data/**/*.parquet
-data/**/*.json
-data/raw/
-models/
-backend/.env
-.ipynb_checkpoints/
-__pycache__/
-.DS_Store
+# Ignorar todo data por defecto
+data/**
 
-# ---- Mantener TODOS los artefactos de processed ----
+# Re-incluir processed para poder whitelistear
 !data/processed/
 !data/processed/**
-# Playwright
+
+# Ignorar intermedios reproducibles
+data/processed/player_stats_*_*.clean.csv
+data/processed/player_stats_*_*.clean.parquet
+data/processed/fbref_players*.csv
+data/processed/tm_values_*_latest.csv
+data/processed/*.parquet
+
+# Mantener sólo los joins (y opcional samples)
+!data/processed/join_*.csv
+
+# resto típico
+.venv/
+__pycache__/
+*.pyc
 .pw-profile/
 .pw-tm/
 playwright-report/
-# Temp
-data/tmp/
+test-results/
+.DS_Store
+Thumbs.db
+backend/.env
+
+# Scripts que ya no usamos
+scripts/_deprecated/**
+scripts/_deprecated
