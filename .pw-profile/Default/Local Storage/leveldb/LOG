@@ -1,9 +1,0 @@
-2025/10/21-05:13:37.110 788c Reusing MANIFEST C:\Users\FrancoPC\OneDrive\Desktop\TPO_CienciaDeDatos\.pw-profile\Default\Local Storage\leveldb/MANIFEST-000001
-2025/10/21-05:13:37.114 788c Recovering log #42
-2025/10/21-05:13:37.117 788c Reusing old log C:\Users\FrancoPC\OneDrive\Desktop\TPO_CienciaDeDatos\.pw-profile\Default\Local Storage\leveldb/000042.log 
-2025/10/21-05:16:54.408 71a8 Level-0 table #47: started
-2025/10/21-05:16:54.412 71a8 Level-0 table #47: 11985 bytes OK
-2025/10/21-05:16:54.413 71a8 Delete type=0 #42
-2025/10/21-05:24:41.864 71a8 Level-0 table #49: started
-2025/10/21-05:24:41.869 71a8 Level-0 table #49: 10341 bytes OK
-2025/10/21-05:24:41.870 71a8 Delete type=0 #46
