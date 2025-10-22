@@ -22,6 +22,10 @@ test-results/
 .DS_Store
 Thumbs.db
 backend/.env
+.env
+.kaggle/
+.pw-profile/
+
 
 # Scripts deprecated
 scripts/_deprecated/**
