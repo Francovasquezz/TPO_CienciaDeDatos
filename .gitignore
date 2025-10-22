@@ -1,21 +1,17 @@
-# Ignorar todo data por defecto
+# Ignorar todo data/
 data/**
 
-# Re-incluir processed para poder whitelistear
+# Re-incluir data/processed para poder whitelistear archivos puntuales
 !data/processed/
-!data/processed/**
 
-# Ignorar intermedios reproducibles
-data/processed/player_stats_*_*.clean.csv
-data/processed/player_stats_*_*.clean.parquet
-data/processed/fbref_players*.csv
-data/processed/tm_values_*_latest.csv
-data/processed/*.parquet
+# Vuelve a ignorar todo dentro de data/processed...
+data/processed/**
 
-# Mantener sólo los joins (y opcional samples)
+# ...salvo los joins (y opcionalmente samples)
 !data/processed/join_*.csv
+# !data/processed/samples/**   # descomenta si querés versionar una carpeta samples
 
-# resto típico
+# Resto típico
 .venv/
 __pycache__/
 *.pyc
@@ -27,6 +23,5 @@ test-results/
 Thumbs.db
 backend/.env
 
-# Scripts que ya no usamos
+# Scripts deprecated
 scripts/_deprecated/**
-scripts/_deprecated
