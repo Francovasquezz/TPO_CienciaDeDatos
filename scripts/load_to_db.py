@@ -1,10 +1,25 @@
 import pandas as pd
 from sqlalchemy import create_engine
+import sys
 
-# Configurar conexión directa
-DATABASE_URL = "postgresql://postgres:LettitPrime@db.eaipsfbrivaiqumhijdc.supabase.co:5432/postgres"
+# Credenciales de Supabase (Connection Pooling - Transaction mode)
+PASSWORD = "LettitPrime" 
 
-engine = create_engine(DATABASE_URL)
+DATABASE_URL = f"postgresql://postgres.eaipsfbrivaiqumhijdc:{PASSWORD}@aws-1-sa-east-1.pooler.supabase.com:6543/postgres"
+
+print("Intentando conectar a Supabase...")
+
+try:
+    engine = create_engine(DATABASE_URL, connect_args={'connect_timeout': 10})
+    # Probar conexión
+    with engine.connect() as test_conn:
+        print("✓ Conexión exitosa a Supabase\n")
+except Exception as e:
+    print(f"❌ Error de conexión: {str(e)}")
+    print("\nVerifica:")
+    print("1. Que la contraseña sea correcta")
+    print("2. Que el proyecto esté activo en Supabase")
+    sys.exit(1)
 
 # Leer el CSV de Argentina
 print("Leyendo archivo CSV...")
@@ -18,7 +33,7 @@ field_players = df[df['IsGK'] == False].copy()
 print(f"Arqueros encontrados: {len(goalkeepers)}")
 print(f"Jugadores de campo encontrados: {len(field_players)}")
 
-# Columnas específicas para arqueros (las que tienen datos)
+# Columnas específicas para arqueros
 gk_columns = [col for col in df.columns if col.startswith('GK_') or col in [
     'Player', 'Nation', 'Pos', 'Squad', 'Age', 'Born', 'MatchesPlayed', 
     'IsGK', 'AgeYears', 'player_norm', 'player_fl', 'club_norm', 
@@ -26,41 +41,44 @@ gk_columns = [col for col in df.columns if col.startswith('GK_') or col in [
     'dob', 'age', 'join_method'
 ]]
 
-# Columnas para jugadores de campo (sin columnas GK_)
+# Columnas para jugadores de campo
 field_columns = [col for col in df.columns if not col.startswith('GK_')]
 
-# Limpiar datos de arqueros
+# Limpiar datos
 goalkeepers_clean = goalkeepers[gk_columns]
-
-# Limpiar datos de jugadores de campo
 field_players_clean = field_players[field_columns]
 
-# Crear tablas en la BD
+# Subir a Supabase
 print("\nSubiendo datos a Supabase...")
 
-with engine.connect() as conn:
-    # Tabla de arqueros
-    if len(goalkeepers_clean) > 0:
-        goalkeepers_clean.to_sql(
-            'goalkeepers_arg', 
-            conn, 
-            if_exists='replace', 
-            index=False
-        )
-        print(f"✓ {len(goalkeepers_clean)} arqueros cargados en tabla 'goalkeepers_arg'")
+try:
+    with engine.connect() as conn:
+        # Tabla de arqueros
+        if len(goalkeepers_clean) > 0:
+            goalkeepers_clean.to_sql(
+                'goalkeepers_arg', 
+                conn, 
+                if_exists='replace', 
+                index=False
+            )
+            print(f"✓ {len(goalkeepers_clean)} arqueros cargados → tabla 'goalkeepers_arg'")
+        
+        # Tabla de jugadores de campo
+        if len(field_players_clean) > 0:
+            field_players_clean.to_sql(
+                'field_players_arg', 
+                conn, 
+                if_exists='replace', 
+                index=False
+            )
+            print(f"✓ {len(field_players_clean)} jugadores de campo cargados → tabla 'field_players_arg'")
+        
+        conn.commit()
     
-    # Tabla de jugadores de campo
-    if len(field_players_clean) > 0:
-        field_players_clean.to_sql(
-            'field_players_arg', 
-            conn, 
-            if_exists='replace', 
-            index=False
-        )
-        print(f"✓ {len(field_players_clean)} jugadores de campo cargados en tabla 'field_players_arg'")
+    print("\n✅ ¡Datos cargados exitosamente!")
+    print("\n📊 Para ver tus datos:")
+    print("   https://supabase.com/dashboard/project/eaipsfbrivaiqumhijdc/editor")
     
-    conn.commit()
-
-print("\n✅ Datos de Argentina cargados exitosamente a Supabase")
-print("\nPara ver los datos, ve a:")
-print("https://supabase.com → Tu proyecto → Table Editor")
+except Exception as e:
+    print(f"\n❌ Error al subir datos: {str(e)}")
+    sys.exit(1)
