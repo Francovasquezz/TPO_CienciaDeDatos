@@ -23,7 +23,7 @@ except Exception as e:
 
 # Leer el CSV de Argentina
 print("Leyendo archivo CSV...")
-df = pd.read_csv('data/processed/join_arg_2025.csv')
+df = pd.read_csv('data/processed/join_arg_2025_mv.csv')
 print(f"Total de jugadores: {len(df)}")
 
 # Separar jugadores de campo y arqueros
