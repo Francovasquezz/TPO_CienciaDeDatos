@@ -1,0 +1,52 @@
+
+{
+  "items": [
+    {
+      "id": "p-001",
+      "name": "Enzo Pérez",
+      "position": "MF",
+      "age": 38,
+      "nationality": "ARG",
+      "team_id": "arg-rp",
+      "photo_url": "https://example.com/p001.jpg",
+      "market_value_eur": 800000,
+      "market_value_is_estimated": false
+    },
+    {
+      "id": "p-002",
+      "name": "Carlos Alcaraz",
+      "position": "MF",
+      "age": 22,
+      "nationality": "ARG",
+      "team_id": "arg-rc",
+      "photo_url": null,
+      "market_value_eur": 12000000,
+      "market_value_is_estimated": true
+    },
+    {
+      "id": "p-003",
+      "name": "Agustín Rossi",
+      "position": "GK",
+      "age": 29,
+      "nationality": "ARG",
+      "team_id": "arg-bj",
+      "photo_url": "https://example.com/p003.jpg",
+      "market_value_eur": 4500000,
+      "market_value_is_estimated": false
+    },
+    {
+      "id": "p-004",
+      "name": "Gonzalo Martinez",
+      "position": "FW",
+      "age": 25,
+      "nationality": "ARG",
+      "team_id": "arg-rc",
+      "photo_url": null,
+      "market_value_eur": 500000,
+      "market_value_is_estimated": true
+    }
+  ],
+  "page": 1,
+  "page_size": 25,
+  "total": 500
+}

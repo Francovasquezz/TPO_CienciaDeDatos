@@ -1,0 +1,28 @@
+
+{
+  "id": "p-002",
+  "name": "Carlos Alcaraz",
+  "position": "MF",
+  "age": 22,
+  "nationality": "ARG",
+  "team_id": "arg-rc",
+  "team_name": "Racing Club",
+  "photo_url": null,
+  "market_value_eur": 12000000,
+  "market_value_is_estimated": true,
+  "stats": {
+    "minutes": 1870,
+    "goals": 3,
+    "assists": 5,
+    "xG": 4.2,
+    "xA": 6.1,
+    "rating": 6.92
+  },
+  "feature_attribution": [
+    { "feature": "minutes", "contribution": 0.28 },
+    { "feature": "xA", "contribution": 0.22 },
+    { "feature": "age", "contribution": -0.05 }
+  ],
+  "last_updated": "2025-10-13T23:59:00Z",
+  "sources": ["FBref", "FotMob"]
+}
