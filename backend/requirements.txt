@@ -19,7 +19,7 @@ tqdm                 # opcional, barras de progreso
 sqlalchemy>=2.0
 psycopg2-binary
 duckdb               # fallback local para dev
-
+psycopg2
 # --- Machine Learning ---
 scikit-learn
 xgboost
