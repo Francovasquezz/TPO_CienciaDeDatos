@@ -1,185 +1,114 @@
-# backend/app.py (Modificado)
+# backend/app.py (CORREGIDO FINAL)
 
+import logging
+import os
 from fastapi import FastAPI, HTTPException, Depends
-from pydantic import BaseModel
-import pandas as pd
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session
 from sqlalchemy import text
+from typing import List
 
-# Importa el engine de tu archivo db.py
-from .db import engine 
+# Importa la configuración de BD (get_db, SessionLocal)
+from .db import get_db, SessionLocal
+# Importa el servicio de similitud
+from .similarity import SimilarityService
 
-app = FastAPI(title="TPO Futbol API")
+# Configura logging básico
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger(__name__)
 
-# --- Configuración de la Sesión de Base de Datos ---
-# Crea una sesión para interactuar con la DB
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# --- Carga de Modelos ---
+log.info("Iniciando API y cargando modelos...")
+try:
+    similarity_service = SimilarityService(db_session_factory=SessionLocal)
+    log.info("Servicio de similitud cargado exitosamente.")
+except Exception as e:
+    log.error(f"Error fatal: No se pudo cargar el SimilarityService: {e}")
+    raise
 
-# Dependencia de FastAPI: Inyecta una sesión de BD en tus endpoints
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+app = FastAPI(
+    title="TPO Futbol API",
+    description="API para búsqueda de jugadores y similitud."
+)
 
-# --- Modelos Pydantic (ya los tienes) ---
-class Team(BaseModel):
-    team_id: str
-    name: str
-    league: str
-    season: int
+# --- Endpoints ---
 
-class Player(BaseModel):
-    player_uuid: str
-    full_name: str
-    team_id: str | None = None
-    season: int | None = None
-
-# --- Endpoints Refactorizados ---
-
-@app.get("/teams")
-def get_teams(
-    league: str | None = None, 
-    season: int | None = None,
-    db: Session = Depends(get_db) # Inyecta la sesión de BD
-):
-    # Construye la consulta SQL de forma segura
-    query = "SELECT team_id, team_name AS name, country AS league, :season AS season FROM teams" # Asumiendo una estructura simple
-    params = {"season": season or 2024} # Ajusta el default
-    
-    # Aquí deberías ajustar la query para que filtre por liga y temporada
-    # Esta es una implementación simple leyendo de la tabla 'teams'
-    
-    try:
-        # Ejecuta la consulta usando SQLAlchemy
-        result = db.execute(text(query), params)
-        teams_data = result.mappings().all() # Convierte a lista de dicts
-        
-        # Valida y devuelve los datos usando tu modelo Pydantic
-        return [Team(**row) for row in teams_data]
-    
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/players")
-def get_players(
-    team_id: str | None = None, 
-    season: int | None = None,
-    db: Session = Depends(get_db) # Inyecta la sesión de BD
-):
-    # Ejemplo: Consulta para obtener jugadores de 'player_season_stats'
-    # Esta query ASUME que tienes las tablas del schema.sql
-    
-    query = """
-        SELECT 
-            p.player_uuid, 
-            p.full_name, 
-            pss.team_id, 
-            pss.season_id AS season
-        FROM players p
-        JOIN player_season_stats pss ON p.player_uuid = pss.player_uuid
-        WHERE 1=1
-    """
-    params = {}
-
-    if team_id:
-        query += " AND pss.team_id = :team_id"
-        params["team_id"] = team_id
-    if season:
-        query += " AND pss.season_id = :season_id"
-        params["season_id"] = str(season) # El schema lo define como text
-
-    try:
-        result = db.execute(text(query), params)
-        player_data = result.mappings().all()
-        return [Player(**row) for row in player_data]
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    
-    # backend/app.py (parcial)
-
-# ... (importaciones y setup de 'get_db' como en la respuesta anterior) ...
+@app.get("/")
+def read_root():
+    return {"status": "API de Similitud de Jugadores está en línea"}
 
 @app.get("/players/search")
 def search_players(
     query: str,
+    limit: int = 10,
     db: Session = Depends(get_db)
 ):
     """
-    Busca jugadores por nombre para el autocompletado del frontend.
+    Busca jugadores por nombre (usa 'v_players_union_with_sort')
     """
-    # Consulta la tabla 'players'
-    sql = text("SELECT player_uuid, full_name, primary_position FROM players WHERE full_name ILIKE :query LIMIT 10")
-    result = db.execute(sql, {"query": f"%{query}%"})
-    return result.mappings().all()
+    try:
+        # CORREGIDO: Usa 'v_players_union_with_sort' y las columnas 'player_id', 'player_name', 'Pos'
+        # Renombramos las columnas en la consulta para que la API sea consistente
+        sql = text("""
+            SELECT DISTINCT 
+                player_id AS player_uuid, 
+                player_name AS full_name, 
+                Pos AS primary_position 
+            FROM v_players_union_with_sort 
+            WHERE player_name ILIKE :query 
+            LIMIT :limit
+        """)
+        result = db.execute(sql, {"query": f"%{query}%", "limit": limit})
+        return result.mappings().all()
+    except Exception as e:
+        log.error(f"Error en search_players: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/player/{player_uuid}/details")
 def get_player_details(
-    player_uuid: str,
-    season_id: str = "2024", # O la temporada que definas por defecto
+    player_uuid: str, # Esto sigue siendo 'player_uuid' en la URL
+    season: str = os.getenv("SEASON", "2024"),
     db: Session = Depends(get_db)
 ):
     """
-    Obtiene las estadísticas y el valor de mercado de UN jugador.
+    Obtiene los detalles de UN jugador (usa 'v_players_union_with_sort')
     """
-    # 1. Obtener stats (de 'player_season_stats')
-    sql_stats = text("""
-        SELECT * FROM player_season_stats 
-        WHERE player_uuid = :uuid AND season_id = :season
-    """)
-    stats = db.execute(sql_stats, {"uuid": player_uuid, "season": season_id}).mappings().first()
+    try:
+        # CORREGIDO: Usa 'v_players_union_with_sort' y filtra por 'player_id' y 'season_code'
+        sql = text("""
+            SELECT * FROM v_players_union_with_sort 
+            WHERE player_id = :uuid AND season_code = :season
+        """)
+        # Usamos el 'player_uuid' de la URL para filtrar la columna 'player_id'
+        stats = db.execute(sql, {"uuid": player_uuid, "season": season}).mappings().first()
+        
+        if not stats:
+            raise HTTPException(status_code=404, detail="Estadísticas no encontradas")
+        
+        return stats
+    except Exception as e:
+        log.error(f"Error en get_player_details: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-    # 2. Obtener valor de mercado (de 'market_values')
-    sql_mv = text("""
-        SELECT value_eur FROM market_values
-        WHERE player_uuid = :uuid
-        ORDER BY as_of_date DESC
-        LIMIT 1
-    """)
-    mv = db.execute(sql_mv, {"uuid": player_uuid}).mappings().first()
-
-    if not stats:
-        raise HTTPException(status_code=404, detail="Estadísticas no encontradas para este jugador/temporada")
-
-    return {
-        "stats": stats,
-        "market_value": mv["value_eur"] if mv else None
-    }
-
-# backend/app.py (Añadir esto)
-
-# ... (arriba, inicializa el 'similarity_service' como se muestra en el Paso B) ...
 
 @app.get("/player/{player_uuid}/similar")
 def get_similar_players(
-    player_uuid: str,
+    player_uuid: str, # Este es el 'player_id'
     n: int = 5,
-    db: Session = Depends(get_db)
 ):
     """
-    Recibe un UUID de jugador y devuelve los N jugadores más similares
-    estadísticamente, junto con sus stats y valor de mercado.
+    Encuentra jugadores similares.
     """
+    if n > 20:
+        raise HTTPException(status_code=400, detail="No se pueden pedir más de 20 similares")
+        
     try:
-        # Re-inyectamos la fábrica de sesiones, no la sesión misma
-        # O mejor, modificamos SimilarityService para que acepte la sesión 'db'
-        
-        # --- Solución más simple (modifica SimilarityService) ---
-        # Pasa la sesión 'db' directamente al método
-        # (Tendrías que refactorizar SimilarityService para que no dependa de la fábrica)
-        
-        # --- Solución robusta (usando la instancia ya creada) ---
-        # (Asumiendo que similarity_service fue creado con SessionLocal)
-        
         similar_players = similarity_service.find_similar_players(
-            target_player_uuid=player_uuid,
+            target_player_uuid=player_uuid, # Pasamos el ID al servicio
             n_similar=n
         )
         return similar_players
-        
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    
-    
+        log.error(f"Error en get_similar_players: {e}")
+        if "no encontrado en el índice" in str(e):
+            raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Error interno: {e}")
