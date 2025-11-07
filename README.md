@@ -110,6 +110,14 @@ TPO_Futbol/
 
 
 
+# FBref (PL 24/25)
+python backend/etl.py --league "Premier League" --season "2024-2025"
+
+# Transfermarkt (season_id=2024)
+python scripts/tm_pull_latest_values_playwright.py --league ENG1 --season 2024 --tm-domain com.ar --parquet
+
+# Join
+python scripts/join_tm_fbref.py --fbref "data/processed/player_stats_Premier_League_2024-2025.clean.csv" --tm "data/processed/tm_values_GB1_2024_latest.csv" --out "data/processed/join_pl_2024_2025.csv" --season-year 2024 --fuzzy-global-thresh 92
 
 
 

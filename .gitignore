@@ -1,17 +1,31 @@
-.venv/
-data/**/*.csv
-data/**/*.parquet
-data/**/*.json
-data/raw/
-models/
-backend/.env
-.ipynb_checkpoints/
-__pycache__/
-.DS_Store
-# ---- Mantener SOLO los artefactos finales limpios ----
-# Ya ignoramos data/**/*.parquet|csv|json arriba;
-# estas negaciones re-incluyen los archivos canónicos.
+# Ignorar todo data/
+data/**
+
+# Re-incluir data/processed para poder whitelistear archivos puntuales
 !data/processed/
-!data/processed/player_stats_Primera_Division_Argentina_2024.clean.parquet
-!data/processed/player_stats_Primera_Division_Argentina_2024.clean.csv
-!data/processed/*schema*.json
+
+# Vuelve a ignorar todo dentro de data/processed...
+data/processed/**
+
+# ...salvo los joins (y opcionalmente samples)
+!data/processed/join_*.csv
+# !data/processed/samples/**   # descomenta si querés versionar una carpeta samples
+
+# Resto típico
+.venv/
+__pycache__/
+*.pyc
+.pw-profile/
+.pw-tm/
+playwright-report/
+test-results/
+.DS_Store
+Thumbs.db
+backend/.env
+.env
+.kaggle/
+.pw-profile/
+
+
+# Scripts deprecated
+scripts/_deprecated/**

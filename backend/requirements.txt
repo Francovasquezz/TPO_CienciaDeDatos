@@ -1,20 +1,45 @@
-# --- Core de la API ---
+# --- Core API ---
 fastapi
 uvicorn[standard]
+orjson               # opcional, respuestas más rápidas
 
-# --- Manejo de Datos (ETL) ---
+# --- Manejo de datos (ETL) ---
 pandas
 pyarrow
-LanusStats
+PyYAML               # <-- para configs/leagues.yaml
+# LanusStats         # <- comentar o instalar vía git si lo usás
+# git+https://github.com/federicorabanos/futbol-data-visualizacion@main
 
+# --- Matching / Utils ---
+rapidfuzz
+python-dotenv
+tqdm                 # opcional, barras de progreso
+
+# --- Conexión a Base de Datos ---
+sqlalchemy>=2.0
+psycopg2-binary
+duckdb               # fallback local para dev
+psycopg2
 # --- Machine Learning ---
 scikit-learn
 xgboost
 
-# --- Conexión a Base de Datos (para el despliegue) ---
-psycopg2-binary
-sqlalchemy
-
-# Dependencia requerida por LanusStats
+# --- (Opcional) Dependencias de scraping / notebooks ---
+requests             # si tu ETL descarga desde web
 ipython
 webdriver-manager
+beautifulsoup4
+kaggle
+rapidfuzz
+tyrone-mings
+beautifulsoup4
+lxml
+cloudscraper
+selenium 
+webdriver-manager 
+undetected-chromedriver
+playwright 
+pandas
+chromium
+unidecode
+rapidfuzz
