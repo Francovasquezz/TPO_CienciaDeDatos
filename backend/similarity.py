@@ -8,22 +8,24 @@ from sqlalchemy import text
 import numpy as np
 import logging
 import os
+import json
 
 MODEL_DIR = Path("models")
 
 class SimilarityService:
     def __init__(self, db_session_factory: sessionmaker):
         logging.info("Cargando artefactos del modelo de similitud...")
+        
+        # --- ESTE ES EL BLOQUE CORREGIDO ---
         try:
-            self.scaler = joblib.load(MODEL_DIR / "scaler.pkl")
-            self.model = joblib.load(MODEL_DIR / "knn_model.pkl")
-            self.features_matrix = joblib.load(MODEL_DIR / "features_matrix.pkl")
-            self.player_index = joblib.load(MODEL_DIR / "player_index.pkl")
+            # Carga los artefactos de JUGADORES DE CAMPO
+            self.scaler = joblib.load(MODEL_DIR / "field_scaler.joblib")
+            self.model = joblib.load(MODEL_DIR / "field_knn_model.joblib")
+            self.features_matrix = joblib.load(MODEL_DIR / "field_features_matrix.joblib")
             
-            if isinstance(self.player_index, pd.Series):
-                self.player_index = self.player_index.tolist()
-            elif isinstance(self.player_index, pd.DataFrame):
-                self.player_index = self.player_index.iloc[:, 0].tolist()
+            # Carga el índice de jugadores (que es un JSON)
+            with open(MODEL_DIR / "field_player_index.json", "r") as f:
+                self.player_index = json.load(f)
             
             self.db_session_factory = db_session_factory
             logging.info(f"✅ Artefactos cargados. {len(self.player_index)} jugadores indexados.")
@@ -35,7 +37,8 @@ class SimilarityService:
         except Exception as e:
             logging.error(f"Error al cargar los artefactos: {e}")
             raise
-
+        # --- FIN DEL BLOQUE CORREGIDO ---
+        
     def find_similar_players(self, target_player_uuid: str, n_similar: int = 5):
         try:
             target_idx = self.player_index.index(str(target_player_uuid))

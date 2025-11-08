@@ -197,7 +197,7 @@ with engine.begin() as conn:
     season_filter_fp = ""
     if season_cols_fp:
         sc = season_cols_fp[0]
-        season_filter_fp = f"WHERE {q(sc)} = :season_val"
+        #season_filter_fp = f"WHERE {q(sc)} = :season_val"
         print(f"→ Filtro temporada CAMPO: {sc} = {TARGET_SEASON}")
     else:
         print("⚠️  CAMPO sin columna de temporada; no se filtra.")
@@ -232,7 +232,7 @@ with engine.begin() as conn:
                 season_filter_gk = ""
                 if season_cols_gk:
                     scg = season_cols_gk[0]
-                    season_filter_gk = f"WHERE {q(scg)} = :season_val"
+                    #season_filter_gk = f"WHERE {q(scg)} = :season_val"
                     print(f"→ Filtro temporada GK: {scg} = {TARGET_SEASON}")
                 else:
                     print("⚠️  GK sin columna de temporada; no se filtra.")

@@ -65,21 +65,24 @@ def search_players(
 
 @app.get("/player/{player_uuid}/details")
 def get_player_details(
-    player_uuid: str, # Esto sigue siendo 'player_uuid' en la URL
-    season: str = os.getenv("SEASON", "2024"),
+    player_uuid: str, # <-- 1. Se quitó el parámetro 'season'
     db: Session = Depends(get_db)
 ):
     """
     Obtiene los detalles de UN jugador (usa 'v_players_union_with_sort')
+    Devuelve TODAS las temporadas disponibles para ese jugador.
     """
     try:
-        # CORREGIDO: Usa 'v_players_union_with_sort' y filtra por 'player_id' y 'season_code'
+        # 2. CORREGIDO: Se quitó el filtro 'season_code'
         sql = text("""
             SELECT * FROM v_players_union_with_sort 
-            WHERE player_id = :uuid AND season_code = :season
-        """)
-        # Usamos el 'player_uuid' de la URL para filtrar la columna 'player_id'
-        stats = db.execute(sql, {"uuid": player_uuid, "season": season}).mappings().first()
+            WHERE player_id = :uuid
+            ORDER BY season_code DESC
+        """) # <-- Se agregó un ORDER BY para que la más reciente venga primero
+        
+        # 3. Se quita 'season' de los parámetros
+        # 4. Usamos .all() para devolver una lista con todas sus temporadas
+        stats = db.execute(sql, {"uuid": player_uuid}).mappings().all()
         
         if not stats:
             raise HTTPException(status_code=404, detail="Estadísticas no encontradas")
@@ -88,7 +91,6 @@ def get_player_details(
     except Exception as e:
         log.error(f"Error en get_player_details: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @app.get("/player/{player_uuid}/similar")
 def get_similar_players(
