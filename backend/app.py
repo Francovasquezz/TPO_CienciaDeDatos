@@ -114,3 +114,90 @@ def get_similar_players(
         if "no encontrado en el índice" in str(e):
             raise HTTPException(status_code=404, detail=str(e))
         raise HTTPException(status_code=500, detail=f"Error interno: {e}")
+    
+
+@app.get("/leagues")
+def get_leagues(db: Session = Depends(get_db)):
+    """
+    Obtiene una lista de todas las ligas únicas desde la vista v_leagues.
+    """
+    try:
+        # 1. Llama a la vista v_leagues que ya creaste
+        sql = text("SELECT league_name FROM v_leagues ORDER BY league_name")
+        result = db.execute(sql)
+        
+        # 2. Devuelve una lista simple de strings (nombres de ligas)
+        return [row['league_name'] for row in result.mappings().all()]
+    
+    except Exception as e:
+        log.error(f"Error en get_leagues: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/leagues/{league_name}/clubs")
+def get_clubs_by_league(
+    league_name: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Obtiene los clubes de una liga específica desde la vista v_clubs_by_league.
+    """
+    try:
+        # 1. Llama a la NUEVA vista v_clubs_by_league filtrando
+        sql = text("""
+            SELECT team_name 
+            FROM v_clubs_by_league 
+            WHERE league_name ILIKE :league
+            ORDER BY team_name
+        """)
+        result = db.execute(sql, {"league": league_name})
+        
+        # 2. Devuelve una lista simple de strings (nombres de equipos)
+        clubs = [row['team_name'] for row in result.mappings().all()]
+        
+        if not clubs:
+            # Opcional: chequear si la liga existe pero no tiene clubes
+            # o si la liga directamente no existe.
+            # Por ahora, solo devolvemos lista vacía.
+            log.warning(f"No se encontraron clubes para la liga: {league_name}")
+        
+        return clubs
+        
+    except Exception as e:
+        log.error(f"Error en get_clubs_by_league: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/clubs/{club_name}/players")
+def get_players_by_club(
+    club_name: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Obtiene la lista de jugadores de un club específico.
+    Usa la misma vista 'v_players_union_with_sort'.
+    """
+    try:
+        # Usamos la misma lógica del endpoint /search
+        # para devolver un formato consistente
+        sql = text("""
+            SELECT DISTINCT 
+                player_id AS player_uuid, 
+                player_name AS full_name, 
+                Pos AS primary_position 
+            FROM v_players_union_with_sort 
+            WHERE club ILIKE :club_name 
+            ORDER BY player_name
+        """)
+        
+        result = db.execute(sql, {"club_name": club_name})
+        players = result.mappings().all()
+        
+        if not players:
+            log.warning(f"No se encontraron jugadores para el club: {club_name}")
+            # No es un error, puede ser un club sin jugadores en la vista
+        
+        return players
+        
+    except Exception as e:
+        log.error(f"Error en get_players_by_club: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
