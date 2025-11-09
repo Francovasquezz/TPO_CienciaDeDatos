@@ -1,11 +1,11 @@
 // frontend/src/routes/Router.tsx
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { Layout } from "./layout";
-import { PlayersPage } from "../pages/Players"; // <-- Importamos la página
+import { PlayersPage } from "../pages/Players"; 
+import { PlayerDetailPage } from "../pages/PlayerDetail"; // <-- Importamos la página real
 
-// Páginas simples (aún no creadas)
+// Páginas simples
 const DashboardPage = () => <h1>Dashboard (Home)</h1>;
-const PlayerDetailPage = () => <h1>Player Detail</h1>;
 const AboutPage = () => <h1>About / Metodología</h1>;
 
 const router = createBrowserRouter([
@@ -14,9 +14,8 @@ const router = createBrowserRouter([
     element: <Layout />,
     children: [
       { index: true, element: <DashboardPage /> },
-      // Conectamos la ruta /players a la página real:
-      { path: "players", element: <PlayersPage /> }, 
-      { path: "players/:id", element: <PlayerDetailPage /> },
+      { path: "players", element: <PlayersPage /> },
+      { path: "players/:id", element: <PlayerDetailPage /> }, // <-- Ruta conectada
       { path: "about", element: <AboutPage /> },
     ],
   },

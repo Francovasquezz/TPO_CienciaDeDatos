@@ -1,7 +1,11 @@
+// frontend/vite.config.ts (CÓDIGO FINAL Y CORREGIDO)
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tsconfigPaths from 'vite-tsconfig-paths' // <-- agregado
 
-// https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tsconfigPaths()],
+  resolve: {
+    dedupe: ['react', 'react-dom'],
+  }
 })
