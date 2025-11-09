@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import List
+from .value import MarketValueService # <-- NUEVO IMPORT
 
 # Importa la configuración de BD (get_db, SessionLocal)
 from .db import get_db, SessionLocal
@@ -24,6 +25,15 @@ try:
 except Exception as e:
     log.error(f"Error fatal: No se pudo cargar el SimilarityService: {e}")
     raise
+
+try:
+    value_service = MarketValueService()
+    log.info("Servicio de oportunidades de mercado cargado exitosamente.")
+except Exception as e:
+    log.error(f"Error: No se pudo cargar el MarketValueService: {e}")
+    # Nota: No lanzamos 'raise' aquí para que la API
+    # pueda funcionar incluso si este servicio falla.
+    value_service = None # Lo dejamos como None
 
 app = FastAPI(
     title="TPO Futbol API",
@@ -200,4 +210,28 @@ def get_players_by_club(
         
     except Exception as e:
         log.error(f"Error en get_players_by_club: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/market-opportunities")
+def get_market_opportunities(
+    limit: int = 50
+):
+    """
+    Obtiene una lista de jugadores "infravalorados" (oportunidades de mercado)
+    basado en un modelo de predicción de valor.
+    """
+    if not value_service:
+        raise HTTPException(
+            status_code=503, 
+            detail="El servicio de oportunidades de mercado no está disponible."
+        )
+        
+    if limit > 200: # El script solo guarda 200
+        limit = 200
+        
+    try:
+        players = value_service.get_opportunities(limit=limit)
+        return players
+    except Exception as e:
+        log.error(f"Error en get_market_opportunities: {e}")
         raise HTTPException(status_code=500, detail=str(e))
