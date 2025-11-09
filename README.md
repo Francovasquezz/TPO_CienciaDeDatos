@@ -121,27 +121,24 @@ python scripts/join_tm_fbref.py --fbref "data/processed/player_stats_Premier_Lea
 
 
 
-## Servicios de Machine Learning
+# Servicios de Machine Learning
+El núcleo de esta API reside en dos servicios de scouting inteligente que proveen análisis avanzados sobre jugadores, ambos construidos con scikit-learn.
 
-El núcleo de esta API reside en dos servicios de *scouting* inteligente que proveen análisis avanzados sobre jugadores, ambos construidos con `scikit-learn`.
-
-### 1. Servicio de Similitud (Endpoint: `/player/{uuid}/similar`)
-
+1. Servicio de Similitud (Endpoint: /player/{uuid}/similar)
 Este servicio permite encontrar jugadores con perfiles estadísticos y estilos de juego similares.
 
-* **Algoritmo:** **K-Nearest Neighbors (k-NN)**.
-* **Funcionamiento:** Las estadísticas de todos los jugadores se estandarizan (usando `StandardScaler`) y se representan como vectores en un espacio multidimensional. Cuando se consulta por un jugador, el modelo k-NN identifica a los *k* jugadores más cercanos (vecinos) en ese espacio utilizando la **distancia euclidiana**. El resultado es una lista de jugadores que, estadísticamente, rinden de forma más parecida al jugador objetivo.
+Algoritmo: K-Nearest Neighbors (k-NN).
 
-### 2. Servicio de Oportunidades de Mercado (Endpoint: `/market-opportunities`)
+Funcionamiento: Las estadísticas de todos los jugadores se estandarizan (usando StandardScaler) y se representan como vectores en un espacio multidimensional. Cuando se consulta por un jugador, el modelo k-NN identifica a los k jugadores más cercanos (vecinos) en ese espacio utilizando la distancia euclidiana. El resultado es una lista de jugadores que, estadísticamente, rinden de forma más parecida al jugador objetivo.
 
+2. Servicio de Oportunidades de Mercado (Endpoint: /market-opportunities)
 Este servicio proactivamente identifica a los jugadores "infravalorados" o "gangas" del mercado.
 
-* **Algoritmo:** **`RandomForestRegressor` (Regresor de Bosque Aleatorio)**.
-* **Funcionamiento:** Se entrenó un modelo de regresión supervisada donde las **features (X)** son las estadísticas de rendimiento de los jugadores y el **target (Y)** es su valor de mercado real (`latest_mv_eur`). El modelo `RandomForestRegressor` aprende la compleja relación no lineal entre el rendimiento en el campo y el valor de mercado.
-* **Identificación de Oportunidades:** El modelo se usa para predecir un "valor esperado" para cada jugador basado únicamente en sus estadísticas. El endpoint devuelve una lista de jugadores ordenada por la mayor diferencia positiva (`Valor Predicho - Valor Real`), señalando a aquellos que rinden como jugadores mucho más caros de lo que su precio actual indica.
+Algoritmo: RandomForestRegressor (Regresor de Bosque Aleatorio).
 
+Funcionamiento: Se entrenó un modelo de regresión supervisada donde las features (X) son las estadísticas de rendimiento de los jugadores y el target (Y) es su valor de mercado real (latest_mv_eur). El modelo RandomForestRegressor aprende la compleja relación no lineal entre el rendimiento en el campo y el valor de mercado.
 
-
+Identificación de Oportunidades: El modelo se usa para predecir un "valor esperado" para cada jugador basado únicamente en sus estadísticas. El endpoint devuelve una lista de jugadores ordenada por la mayor diferencia positiva (Valor Predicho - Valor Real), señalando a aquellos que rinden como jugadores mucho más caros de lo que su precio actual indica.
 
 
 
