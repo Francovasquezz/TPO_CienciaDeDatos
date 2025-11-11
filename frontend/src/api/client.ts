@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 const axiosClient = axios.create({
-  // Usa la variable de entorno, que MSW interceptará
+  // Asume VITE_API_BASE_URL=http://localhost:8000
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
 });
 

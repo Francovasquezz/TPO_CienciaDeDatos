@@ -1,24 +1,26 @@
-// frontend/src/main.tsx (MODIFICAR)
+// frontend/src/main.tsx
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query' // <-- NUEVO IMPORT
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query' 
 import { AppRouter } from './routes/router'
-import { enableMocking } from './mocks/browser' 
+// NOTA: Se asume que el código de MSW (mocks/browser.ts) fue eliminado o comentado
 
-// Importar los estilos 
 import './styles/index.css'
 
-// 1. Crear una instancia del cliente de consulta
-const queryClient = new QueryClient();
-
-// Se asegura que React inicie SÓLO después de que MSW esté listo
-enableMocking().then(() => {
-    ReactDOM.createRoot(document.getElementById('root')!).render(
-        <React.StrictMode>
-            {/* 2. ENVOLVEMOS TODA LA APLICACIÓN CON EL PROVEEDOR */}
-            <QueryClientProvider client={queryClient}>
-                <AppRouter />
-            </QueryClientProvider>
-        </React.StrictMode>,
-    );
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            // Configuración por defecto para evitar refetch innecesario
+            staleTime: 5 * 60 * 1000, 
+        }
+    }
 });
+
+// RENDERIZADO FINAL (Llamará a FastAPI)
+ReactDOM.createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+        <QueryClientProvider client={queryClient}>
+            <AppRouter />
+        </QueryClientProvider>
+    </React.StrictMode>,
+);
