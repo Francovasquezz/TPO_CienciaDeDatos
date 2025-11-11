@@ -1,0 +1,78 @@
+{
+  "id": "p-002",
+  "name": "Carlos Alcaraz",
+  "position": "MF",
+  "age": 22,
+  "nationality": "ARG",
+  "team_id": "arg-rc",
+  "team_name": "Racing Club",
+  "team_name": "Racing Club",
+  "team_logo_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/Escudo_de_Racing_Club_%282014%29.svg/32px-Escudo_de_Racing_Club_%282014%29.svg.png", 
+ "photo_url": "https://randomuser.me/api/portraits/men/50.jpg",
+  "photo_url": null,
+  "market_value_eur": 12000000,
+  "market_value_is_estimated": true,
+  "is_goalkeeper": false,
+
+  "competition_stats": [
+    {
+      "competition": "Liga Profesional",
+      "matches": 15,
+      "goals": 3,
+      "assists": 4,
+      "xG": 2.8,
+      "xA": 3.1,
+      "minutes": 1200
+    },
+    {
+      "competition": "Copa Libertadores",
+      "matches": 4,
+      "goals": 1,
+      "assists": 1,
+      "xG": 0.9,
+      "xA": 0.7,
+      "minutes": 350
+    }
+  ],
+  
+  "recent_matches": [
+    {
+      "date": "2025-10-18",
+      "competition": "Liga Profesional",
+      "home_team": "Racing Club",
+      "home_score": 2,
+      "away_team": "River Plate",
+      "away_score": 1,
+      "result": "W"
+    },
+    {
+      "date": "2025-10-11",
+      "competition": "Copa Libertadores",
+      "home_team": "Boca Juniors",
+      "home_score": 1,
+      "away_team": "Racing Club",
+      "away_score": 1,
+      "result": "D"
+    },
+    {
+      "date": "2025-10-05",
+      "competition": "Liga Profesional",
+      "home_team": "Racing Club",
+      "home_score": 0,
+      "away_team": "Independiente",
+      "away_score": 1,
+      "result": "L"
+    }
+  ],
+
+  "stats": { "minutes": 1550, "goals": 4, "assists": 5, "xG": 4.2, "xA": 6.1, "rating": 6.92 },
+  
+  "feature_attribution": [
+    { "feature": "Minutos Jugados", "contribution": 0.28 },
+    { "feature": "Asistencias Esperadas (xA)", "contribution": 0.22 },
+    { "feature": "Edad", "contribution": -0.05 }
+  ],
+  
+  "last_updated": "2025-10-13T23:59:00Z",
+  "sources": ["FBref", "Transfermarkt"]
+}
