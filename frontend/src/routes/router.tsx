@@ -1,27 +1,23 @@
-// frontend/src/routes/Router.tsx
+// frontend/src/routes/router.tsx (ACTUALIZAR)
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import { Layout } from "./layout";
-import { DashboardPage } from "../pages/Dashboard"; // ⬅️ NUEVO IMPORT
-import { PlayersPage } from "../pages/Players"; 
-import { PlayerDetailPage } from "../pages/PlayerDetail"; // ⬅️ NUEVO IMPORT
+import { Layout } from "./layout"; // Asegúrate que coincida mayúsculas/minúsculas con tu archivo
+import { DashboardPage } from "../pages/Dashboard"; 
+import { PlayerDetailPage } from "../pages/PlayerDetail"; 
+import { OpportunitiesPage } from "../pages/Opportunities"; // ⬅️ IMPORTAR
 
 // Páginas simples
-const AboutPage = () => <h1>About / Metodología</h1>;
+const AboutPage = () => <h1 className="text-white text-center mt-10">About / Metodología</h1>;
+const PlayersPagePlaceholder = () => <h1 className="text-white text-center mt-10">Listado de Jugadores (Use la búsqueda en Home)</h1>;
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: <Layout />,
     children: [
-      // ⬅️ Home Page
-      { index: true, element: <DashboardPage /> }, 
-      
-      // ⬅️ Ruta de Lista (Se mantiene, aunque el foco es la búsqueda)
-      { path: "players", element: <PlayersPage /> }, 
-      
-      // ⬅️ Ruta de Detalle (Basada en el UUID del flujo)
+      { index: true, element: <DashboardPage /> },
+      { path: "players", element: <PlayersPagePlaceholder /> }, 
       { path: "player/:uuid", element: <PlayerDetailPage /> }, 
-      
+      { path: "opportunities", element: <OpportunitiesPage /> }, // ⬅️ NUEVA RUTA
       { path: "about", element: <AboutPage /> },
     ],
   },

@@ -1,116 +1,97 @@
 // frontend/src/components/PlayerStatsTable.tsx
 import React from 'react';
 import { PlayerDetail } from '../lib/schemas';
-import { Card, CardHeader, CardTitle, CardContent } from './ui/card'; 
+import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-
-// Definimos las columnas según el CSV y la lógica de portero
-const FIELD_PLAYER_COLUMNS = ['PJ', 'Goles', 'Asist.', 'xG', 'xA', 'Minutos'];
-const GOALKEEPER_COLUMNS = ['PJ', 'Goles Rec.', 'Vallas 0', '% Atajadas', 'Minutos'];
 
 interface PlayerStatsTableProps {
   player: PlayerDetail;
 }
 
 export const PlayerStatsTable: React.FC<PlayerStatsTableProps> = ({ player }) => {
-  const isGK = player.is_goalkeeper;
-  const columns = isGK ? GOALKEEPER_COLUMNS : FIELD_PLAYER_COLUMNS;
-  const stats = player.competition_stats || [];
-
-  // Función para renderizar las celdas de datos por competición
-  const renderPlayerRow = (stat: any) => {
-    if (isGK) {
-      return (
-        <>
-          <TableCell className="text-center">{stat.matches}</TableCell>
-          <TableCell className="text-center">{stat.goals_received ?? 0}</TableCell>
-          <TableCell className="text-center">{stat.clean_sheets ?? 0}</TableCell>
-          <TableCell className="text-center">
-            {stat.save_percentage !== undefined ? `${(stat.save_percentage * 100).toFixed(1)}%` : 'N/A'}
-          </TableCell>
-          <TableCell className="text-center">{stat.minutes}</TableCell>
-        </>
-      );
-    }
-    // Lógica para Jugador de Campo
-    return (
-      <>
-        <TableCell className="text-center">{stat.matches}</TableCell>
-        <TableCell className="text-center">{stat.goals ?? 0}</TableCell>
-        <TableCell className="text-center">{stat.assists ?? 0}</TableCell>
-        <TableCell className="text-center">{stat.xG ?? 'N/A'}</TableCell>
-        <TableCell className="text-center">{stat.xA ?? 'N/A'}</TableCell>
-        <TableCell className="text-center">{stat.minutes}</TableCell>
-      </>
-    );
-  };
-
-  // Función para calcular y renderizar la fila de total (parte inferior)
-  const renderTotalRow = () => {
-    const totalMinutes = stats.reduce((sum, s) => sum + s.minutes, 0);
-    const totalMatches = stats.reduce((sum, s) => sum + s.matches, 0);
-
-    if (isGK) {
-      const totalGoalsReceived = stats.reduce((sum, s) => sum + (s.goals_received ?? 0), 0);
-      const totalCleanSheets = stats.reduce((sum, s) => sum + (s.clean_sheets ?? 0), 0);
-      return (
-        <>
-          <TableCell className="text-center">{totalMatches}</TableCell>
-          <TableCell className="text-center">{totalGoalsReceived}</TableCell>
-          <TableCell className="text-center">{totalCleanSheets}</TableCell>
-          <TableCell className="text-center" colSpan={1}>N/A</TableCell>
-          <TableCell className="text-center">{totalMinutes}</TableCell>
-        </>
-      );
-    }
-    
-    const totalGoals = stats.reduce((sum, s) => sum + (s.goals ?? 0), 0);
-    const totalAssists = stats.reduce((sum, s) => sum + (s.assists ?? 0), 0);
-    return (
-      <>
-        <TableCell className="text-center">{totalMatches}</TableCell>
-        <TableCell className="text-center">{totalGoals}</TableCell>
-        <TableCell className="text-center">{totalAssists}</TableCell>
-        <TableCell className="text-center" colSpan={2}>N/A</TableCell>
-        <TableCell className="text-center">{totalMinutes}</TableCell>
-      </>
-    );
-  };
+  const isGK = player.IsGK; 
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Rendimiento por Competición</CardTitle>
+    <Card className="bg-zinc-950 border-zinc-800 shadow-lg mt-8">
+      <CardHeader className="border-b border-zinc-900">
+        <CardTitle className="text-white flex items-center gap-3">
+            <span>Estadísticas de la Temporada</span>
+            <span className={`text-xs px-2 py-0.5 rounded border ${isGK ? 'bg-yellow-900/30 border-yellow-700 text-yellow-500' : 'bg-blue-900/30 border-blue-700 text-blue-400'}`}>
+                {isGK ? 'ARQUERO' : 'JUGADOR DE CAMPO'}
+            </span>
+        </CardTitle>
       </CardHeader>
-      <CardContent className="p-0">
-        <div className="flex justify-between p-4 border-b">
-            <span className="font-semibold text-sm">Compacto (Ampliado - TBD)</span>
-        </div>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[180px]">Competición</TableHead>
-                {columns.map(col => (
-                  <TableHead key={col} className="text-center">{col}</TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {stats.map((stat, index) => (
-                <TableRow key={index}>
-                  <TableCell className="font-medium">{stat.competition}</TableCell>
-                  {renderPlayerRow(stat)}
-                </TableRow>
-              ))}
-              {/* Fila del Total */}
-              <TableRow className="font-bold bg-gray-50 dark:bg-gray-800/50">
-                <TableCell>Total</TableCell>
-                {renderTotalRow()}
-              </TableRow>
-            </TableBody>
-          </Table>
-        </div>
+      <CardContent className="p-0 overflow-x-auto">
+        <Table>
+          <TableHeader className="bg-zinc-900">
+            <TableRow className="border-zinc-800 hover:bg-zinc-900">
+              {/* Encabezados Comunes */}
+              <TableHead className="text-zinc-400 whitespace-nowrap">Partidos Jugados</TableHead>
+              
+              {isGK ? (
+                /* Columnas Arquero */
+                <>
+                  <TableHead className="text-center text-zinc-400 whitespace-nowrap">Atajadas</TableHead>
+                  <TableHead className="text-center text-zinc-400 whitespace-nowrap">Goles Rec.</TableHead>
+                  <TableHead className="text-center text-zinc-400 whitespace-nowrap">% Atajadas</TableHead>
+                  <TableHead className="text-center text-zinc-400 whitespace-nowrap">Vallas Inv.</TableHead>
+                  <TableHead className="text-center text-zinc-400 whitespace-nowrap">PSxG</TableHead>
+                </>
+              ) : (
+                /* Columnas Jugador de Campo (Lista Completa Solicitada) */
+                <>
+                  <TableHead className="text-center text-zinc-400 font-bold text-white">Goles</TableHead>
+                  <TableHead className="text-center text-zinc-400 font-bold text-white">Asistencias</TableHead>
+                  <TableHead className="text-center text-zinc-400" title="Goles Esperados">xG</TableHead>
+                  <TableHead className="text-center text-zinc-400" title="Asistencias Esperadas">xAG</TableHead>
+                  <TableHead className="text-center text-zinc-400">Tiros</TableHead>
+                  <TableHead className="text-center text-zinc-400" title="Tiros al Arco">Tiros al Arco</TableHead>
+                  <TableHead className="text-center text-zinc-400">Pases Comp.</TableHead>
+                  <TableHead className="text-center text-zinc-400">Pases Int.</TableHead>
+                  <TableHead className="text-center text-zinc-400">% Pases</TableHead>
+                  <TableHead className="text-center text-zinc-400">Tackles</TableHead>
+                  <TableHead className="text-center text-zinc-400">Tackles Gan.</TableHead>
+                  <TableHead className="text-center text-zinc-400">Bloqueos</TableHead>
+                  <TableHead className="text-center text-zinc-400">Intercep.</TableHead>
+                </>
+              )}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow className="hover:bg-zinc-900 border-zinc-800">
+              {/* Valores Comunes */}
+              <TableCell className="text-zinc-200 font-medium pl-4">{player.MatchesPlayed ?? '-'}</TableCell>
+
+              {isGK ? (
+                /* Valores Arquero */
+                <>
+                  <TableCell className="text-center text-blue-400 font-bold">{player.GK_Saves ?? 0}</TableCell>
+                  <TableCell className="text-center text-zinc-300">{player.GK_GA ?? 0}</TableCell>
+                  <TableCell className="text-center text-zinc-300">{player.GK_SavePct ? `${player.GK_SavePct}%` : '-'}</TableCell>
+                  <TableCell className="text-center text-green-400">{player.GK_CS ?? 0}</TableCell>
+                  <TableCell className="text-center text-zinc-300">{player.GK_PSxG ?? '-'}</TableCell>
+                </>
+              ) : (
+                /* Valores Jugador de Campo */
+                <>
+                  <TableCell className="text-center text-green-400 font-bold text-lg">{player.Gls ?? 0}</TableCell>
+                  <TableCell className="text-center text-blue-400 font-bold text-lg">{player.Ast ?? 0}</TableCell>
+                  <TableCell className="text-center text-zinc-300">{player.xG ?? '-'}</TableCell>
+                  <TableCell className="text-center text-zinc-300">{player.xAG ?? '-'}</TableCell>
+                  <TableCell className="text-center text-zinc-300">{player.Shots ?? 0}</TableCell>
+                  <TableCell className="text-center text-zinc-300">{player.SoT ?? 0}</TableCell>
+                  <TableCell className="text-center text-zinc-300">{player.PassCmp ?? 0}</TableCell>
+                  <TableCell className="text-center text-zinc-300">{player.PassAtt ?? 0}</TableCell>
+                  <TableCell className="text-center text-zinc-300">{player.PassCmpPct ? `${player.PassCmpPct}%` : '-'}</TableCell>
+                  <TableCell className="text-center text-zinc-300">{player.Tkl ?? 0}</TableCell>
+                  <TableCell className="text-center text-zinc-300">{player.TklW ?? 0}</TableCell>
+                  <TableCell className="text-center text-zinc-300">{player.Blocks ?? 0}</TableCell>
+                  <TableCell className="text-center text-zinc-300">{player.Int ?? 0}</TableCell>
+                </>
+              )}
+            </TableRow>
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );

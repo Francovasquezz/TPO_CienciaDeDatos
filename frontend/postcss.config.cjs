@@ -1,8 +1,7 @@
-// frontend/postcss.config.cjs (¡Asegúrate de que el nombre del archivo sea .cjs!)
+// frontend/postcss.config.cjs
 module.exports = {
   plugins: {
-    // CAMBIAMOS 'tailwindcss' por su nombre de plugin correcto:
-    '@tailwindcss/postcss': {}, 
+    tailwindcss: {},
     autoprefixer: {},
   },
 }

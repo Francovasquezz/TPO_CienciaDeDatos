@@ -1,16 +1,14 @@
-# backend/app.py (CORREGIDO FINAL)
-
+# backend/app.py
 import logging
 import os
 from fastapi import FastAPI, HTTPException, Depends
+from fastapi.middleware.cors import CORSMiddleware # ⬅️ 1. NUEVO IMPORT
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import List
-from .value import MarketValueService # <-- NUEVO IMPORT
+from .value import MarketValueService 
 
-# Importa la configuración de BD (get_db, SessionLocal)
 from .db import get_db, SessionLocal
-# Importa el servicio de similitud
 from .similarity import SimilarityService
 
 # Configura logging básico
@@ -31,13 +29,20 @@ try:
     log.info("Servicio de oportunidades de mercado cargado exitosamente.")
 except Exception as e:
     log.error(f"Error: No se pudo cargar el MarketValueService: {e}")
-    # Nota: No lanzamos 'raise' aquí para que la API
-    # pueda funcionar incluso si este servicio falla.
-    value_service = None # Lo dejamos como None
+    value_service = None 
 
 app = FastAPI(
     title="TPO Futbol API",
     description="API para búsqueda de jugadores y similitud."
+)
+
+# ⬅️ 2. CONFIGURACIÓN DE CORS (Permite que el frontend hable con el backend)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"], # Permite solo a tu frontend local
+    allow_credentials=True,
+    allow_methods=["*"], # Permite todos los métodos (GET, POST, etc.)
+    allow_headers=["*"], # Permite todos los headers
 )
 
 # --- Endpoints ---
@@ -57,7 +62,6 @@ def search_players(
     """
     try:
         # CORREGIDO: Usa 'v_players_union_with_sort' y las columnas 'player_id', 'player_name', 'Pos'
-        # Renombramos las columnas en la consulta para que la API sea consistente
         sql = text("""
             SELECT DISTINCT 
                 player_id AS player_uuid, 
@@ -75,7 +79,7 @@ def search_players(
 
 @app.get("/player/{player_uuid}/details")
 def get_player_details(
-    player_uuid: str, # <-- 1. Se quitó el parámetro 'season'
+    player_uuid: str, 
     db: Session = Depends(get_db)
 ):
     """
@@ -83,15 +87,12 @@ def get_player_details(
     Devuelve TODAS las temporadas disponibles para ese jugador.
     """
     try:
-        # 2. CORREGIDO: Se quitó el filtro 'season_code'
         sql = text("""
             SELECT * FROM v_players_union_with_sort 
             WHERE player_id = :uuid
             ORDER BY season_code DESC
-        """) # <-- Se agregó un ORDER BY para que la más reciente venga primero
+        """) 
         
-        # 3. Se quita 'season' de los parámetros
-        # 4. Usamos .all() para devolver una lista con todas sus temporadas
         stats = db.execute(sql, {"uuid": player_uuid}).mappings().all()
         
         if not stats:
@@ -104,7 +105,7 @@ def get_player_details(
 
 @app.get("/player/{player_uuid}/similar")
 def get_similar_players(
-    player_uuid: str, # Este es el 'player_id'
+    player_uuid: str, 
     n: int = 5,
 ):
     """
@@ -115,7 +116,7 @@ def get_similar_players(
         
     try:
         similar_players = similarity_service.find_similar_players(
-            target_player_uuid=player_uuid, # Pasamos el ID al servicio
+            target_player_uuid=player_uuid,
             n_similar=n
         )
         return similar_players
@@ -128,17 +129,10 @@ def get_similar_players(
 
 @app.get("/leagues")
 def get_leagues(db: Session = Depends(get_db)):
-    """
-    Obtiene una lista de todas las ligas únicas desde la vista v_leagues.
-    """
     try:
-        # 1. Llama a la vista v_leagues que ya creaste
         sql = text("SELECT league_name FROM v_leagues ORDER BY league_name")
         result = db.execute(sql)
-        
-        # 2. Devuelve una lista simple de strings (nombres de ligas)
         return [row['league_name'] for row in result.mappings().all()]
-    
     except Exception as e:
         log.error(f"Error en get_leagues: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -149,11 +143,7 @@ def get_clubs_by_league(
     league_name: str,
     db: Session = Depends(get_db)
 ):
-    """
-    Obtiene los clubes de una liga específica desde la vista v_clubs_by_league.
-    """
     try:
-        # 1. Llama a la NUEVA vista v_clubs_by_league filtrando
         sql = text("""
             SELECT team_name 
             FROM v_clubs_by_league 
@@ -161,18 +151,10 @@ def get_clubs_by_league(
             ORDER BY team_name
         """)
         result = db.execute(sql, {"league": league_name})
-        
-        # 2. Devuelve una lista simple de strings (nombres de equipos)
         clubs = [row['team_name'] for row in result.mappings().all()]
-        
         if not clubs:
-            # Opcional: chequear si la liga existe pero no tiene clubes
-            # o si la liga directamente no existe.
-            # Por ahora, solo devolvemos lista vacía.
             log.warning(f"No se encontraron clubes para la liga: {league_name}")
-        
         return clubs
-        
     except Exception as e:
         log.error(f"Error en get_clubs_by_league: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -182,13 +164,7 @@ def get_players_by_club(
     club_name: str,
     db: Session = Depends(get_db)
 ):
-    """
-    Obtiene la lista de jugadores de un club específico.
-    Usa la misma vista 'v_players_union_with_sort'.
-    """
     try:
-        # Usamos la misma lógica del endpoint /search
-        # para devolver un formato consistente
         sql = text("""
             SELECT DISTINCT 
                 player_id AS player_uuid, 
@@ -198,16 +174,11 @@ def get_players_by_club(
             WHERE club ILIKE :club_name 
             ORDER BY player_name
         """)
-        
         result = db.execute(sql, {"club_name": club_name})
         players = result.mappings().all()
-        
         if not players:
             log.warning(f"No se encontraron jugadores para el club: {club_name}")
-            # No es un error, puede ser un club sin jugadores en la vista
-        
         return players
-        
     except Exception as e:
         log.error(f"Error en get_players_by_club: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -216,19 +187,13 @@ def get_players_by_club(
 def get_market_opportunities(
     limit: int = 50
 ):
-    """
-    Obtiene una lista de jugadores "infravalorados" (oportunidades de mercado)
-    basado en un modelo de predicción de valor.
-    """
     if not value_service:
         raise HTTPException(
             status_code=503, 
             detail="El servicio de oportunidades de mercado no está disponible."
         )
-        
-    if limit > 200: # El script solo guarda 200
+    if limit > 200: 
         limit = 200
-        
     try:
         players = value_service.get_opportunities(limit=limit)
         return players

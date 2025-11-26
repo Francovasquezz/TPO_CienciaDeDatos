@@ -1,31 +1,28 @@
-// frontend/src/routes/Layout.tsx (DISEÑO AJUSTADO FINAL Y ROBUSTO)
+// frontend/src/routes/layout.tsx (HEADER LIMPIO Y CON OPORTUNIDADES)
 import { Outlet, useLocation } from "react-router-dom";
-import { Home, Settings, Users, Search } from "lucide-react";
-import { Input } from "../components/ui/input"; 
+import { Home, Settings, Users, TrendingUp } from "lucide-react"; // ⬅️ Nuevo Icono
 
-// Array de navegación
+// Array de navegación actualizado
 const navItems = [
     { name: "Home", path: "/", icon: Home },
     { name: "Players", path: "/players", icon: Users },
+    { name: "Oportunidades", path: "/opportunities", icon: TrendingUp }, // ⬅️ Nuevo Botón
     { name: "About", path: "/about", icon: Settings },
 ];
 
-// Componente Navbar (Header estándar)
 const Navbar = () => {
     const location = useLocation(); 
 
     return (
-      <header className="sticky top-0 z-40 w-full border-b bg-white shadow-sm">
-        {/* Contenedor principal: justify-between empuja a los extremos */}
+      <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-zinc-950/80 backdrop-blur-md shadow-sm">
         <div className="flex h-16 items-center px-4 md:px-8 justify-between">
           
           {/* 1. Logo (Izquierda) */}
-          <div className="font-bold text-xl text-blue-600 flex-shrink-0 w-32">
-            Logo
+          <div className="font-bold text-xl text-blue-500 flex-shrink-0 w-32 tracking-wider">
+            FUTBOL<span className="text-white">AI</span>
           </div>
           
-          {/* 2. Botones de Navegación (Centro) */}
-          {/* mx-auto centra este bloque en el espacio restante */}
+          {/* 2. Navegación (Centro) */}
           <nav className="flex space-x-6 text-sm font-medium mx-auto"> 
             {navItems.map((item) => {
                 const isActive = location.pathname === item.path;
@@ -33,7 +30,7 @@ const Navbar = () => {
                     <a 
                         key={item.name} 
                         href={item.path} 
-                        className={`hover:text-blue-600 transition-colors flex items-center gap-1 ${isActive ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}
+                        className={`hover:text-blue-400 transition-colors flex items-center gap-1 ${isActive ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-400'}`}
                     >
                         <item.icon className="w-4 h-4" /> 
                         {item.name}
@@ -42,16 +39,9 @@ const Navbar = () => {
             })}
           </nav>
           
-          {/* 3. Búsqueda Estática (Derecha) */}
-          <div className="relative max-w-64 flex-shrink-0"> {/* ANCHO MÁS PEQUEÑO: max-w-64 */}
-            <Search className="absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Buscar jugadores..."
-              className="w-full rounded-full bg-gray-100 pl-10 pr-4 text-sm"
-              disabled 
-            />
-          </div>
+          {/* 3. Espaciador Invisible (Derecha) */}
+          {/* Mantiene la simetría para que el menú siga centrado */}
+          <div className="w-32 flex-shrink-0 hidden md:block"></div> 
         </div>
       </header>
     );
@@ -59,7 +49,7 @@ const Navbar = () => {
 
 export const Layout = () => {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-black text-white">
       <Navbar /> 
       <main className="flex-grow p-4 md:p-8 container mx-auto">
         <Outlet />

@@ -1,4 +1,3 @@
-// frontend/tailwind.config.js
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: ["class"],
@@ -7,7 +6,7 @@ module.exports = {
     './components/**/*.{ts,tsx}',
     './app/**/*.{ts,tsx}',
     './src/**/*.{ts,tsx}',
-    './index.html', // Asegúrate que escanee el index.html
+    './index.html',
   ],
   prefix: "",
   theme: {
@@ -19,7 +18,9 @@ module.exports = {
       },
     },
     extend: {
-      // ESTO ES LO QUE FALTABA (define 'bg-background', etc.)
+      fontFamily: {
+        sans: ['Ubuntu', 'sans-serif'], // <--- Aquí activamos la fuente
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

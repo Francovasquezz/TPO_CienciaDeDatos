@@ -1,85 +1,103 @@
 // frontend/src/lib/schemas.ts
 import { z } from 'zod';
 
-// --- Schemas Base ---
-export const TeamSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  league: z.string(),
-  logo_url: z.string().url().optional().nullable(),
-});
+export const toTitleCase = (str: string | null | undefined) => {
+  if (!str) return '';
+  return str.toLowerCase().replace(/(?:^|\s)\w/g, (match) => match.toUpperCase());
+};
 
-export const PlayerSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  position: z.enum(['GK', 'DF', 'MF', 'FW', 'NA']),
-  age: z.number().int().positive().nullable(),
-  nationality: z.string().nullable(),
-  team_id: z.string(),
-  photo_url: z.string().url().optional().nullable(),
-  market_value_eur: z.number().int().nullable(),
-  market_value_is_estimated: z.boolean(),
-});
-
-export const PagedPlayersSchema = z.object({
-  items: z.array(PlayerSchema),
-  page: z.number().int().positive(),
-  page_size: z.number().int().positive(),
-  total: z.number().int(),
-});
-
-// --- Schema de Detalle (Actualizado para PR2) ---
-const CompetitionStatSchema = z.object({
-  competition: z.string(),
-  matches: z.number(),
-  goals: z.number().optional(),
-  assists: z.number().optional(),
-  xG: z.number().optional().nullable(),
-  xA: z.number().optional().nullable(),
-  goals_received: z.number().optional(),
-  clean_sheets: z.number().optional(),
-  save_percentage: z.number().optional().nullable(),
-  minutes: z.number(),
-});
-
-const RecentMatchSchema = z.object({
-  date: z.string(),
-  competition: z.string(),
-  home_team: z.string(),
-  home_score: z.number(),
-  away_team: z.string(),
-  away_score: z.number(),
-  result: z.enum(['W', 'D', 'L']),
-});
-
-export const PlayerDetailSchema = PlayerSchema.extend({
-  team_name: z.string(),
-  team_logo_url: z.string().url().optional().nullable(),
-  is_goalkeeper: z.boolean(),
+const normalizeBackendData = (data: unknown) => {
+  if (typeof data !== 'object' || data === null) return data;
   
-  stats: z.object({
-    minutes: z.number().nullable(),
-    goals: z.number().nullable(),
-    assists: z.number().nullable(),
-    xG: z.number().nullable(),
-    xA: z.number().nullable(),
-    rating: z.number().nullable(),
-  }),
-  
-  competition_stats: z.array(CompetitionStatSchema).optional(),
-  recent_matches: z.array(RecentMatchSchema).optional(),
-  
-  feature_attribution: z.array(z.object({
-    feature: z.string(),
-    contribution: z.number(),
-  })).optional(),
-  
-  last_updated: z.string(),
-  sources: z.array(z.string()),
-});
+  const d = data as Record<string, unknown>;
 
-// --- Exportar Tipos ---
-export type Team = z.infer<typeof TeamSchema>;
-export type Player = z.infer<typeof PlayerSchema>;
-export type PagedPlayers = z.infer<typeof PagedPlayersSchema>;
+  return {
+    ...d,
+    player_id: d.player_id ?? d.player_uuid,
+    player_name: toTitleCase(String(d.player_name ?? d.Player ?? '')),
+    Pos: d.Pos ?? d.pos,
+    Age: d.Age ?? d.age,
+    Squad: toTitleCase(String(d.Squad ?? d.squad ?? d.club ?? d.Club ?? d.team ?? '')), 
+    Nation: d.Nation ?? d.nation,
+    
+    // ⬅️ CORRECCIÓN CRÍTICA: Buscamos todas las variantes posibles del valor
+    MarketValueEUR: d.MarketValueEUR ?? d.market_value_eur ?? d.marketvalueeur ?? d.MarketValue ?? d.market_value ?? d.value_eur ?? d.value,
+    
+    IsGK: d.IsGK ?? d.isgk ?? d.is_gk ?? false,
+    
+    // Stats Campo
+    MatchesPlayed: d.MatchesPlayed ?? d.matchesplayed ?? d.matches_played ?? d.mp,
+    Gls: d.Gls ?? d.gls ?? d.goals,
+    Ast: d.Ast ?? d.ast ?? d.assists,
+    xG: d.xG ?? d.xg,
+    xAG: d.xAG ?? d.xag,
+    Shots: d.Shots ?? d.shots,
+    SoT: d.SoT ?? d.sot,
+    PassCmp: d.PassCmp ?? d.passcmp,
+    PassAtt: d.PassAtt ?? d.passatt,
+    PassCmpPct: d.PassCmpPct ?? d.passcmppct ?? d.pass_cmp_pct,
+    Tkl: d.Tkl ?? d.tkl,
+    TklW: d.TklW ?? d.tklw,
+    Blocks: d.Blocks ?? d.blocks,
+    Int: d.Int ?? d.int ?? d.interceptions,
+
+    // Stats Arquero
+    GK_Saves: d.GK_Saves ?? d.gk_saves,
+    GK_GA: d.GK_GA ?? d.gk_ga,
+    GK_SavePct: d.GK_SavePct ?? d.gk_savepct,
+    GK_CS: d.GK_CS ?? d.gk_cs,
+    GK_PSxG: d.GK_PSxG ?? d.gk_psxg,
+    
+    season_code: d.season_code ?? d.Season ?? 'Actual',
+  };
+};
+
+export const PlayerDetailSchema = z.preprocess(
+  normalizeBackendData,
+  z.object({
+    player_id: z.union([z.string(), z.number()]).transform((val) => String(val)),
+    player_name: z.string(),
+    Age: z.union([z.number(), z.string()]).optional(),
+    Pos: z.string().optional().default("N/A"),
+    Squad: z.string().optional().nullable(),
+    Nation: z.string().optional().nullable(),
+    
+    // Aceptamos null para el valor
+    MarketValueEUR: z.number().nullable().optional(),
+    
+    IsGK: z.boolean().optional().default(false),
+
+    MatchesPlayed: z.number().optional(),
+    Gls: z.number().optional(),
+    Ast: z.number().optional(),
+    xG: z.number().optional(),
+    xAG: z.number().optional(),
+    Shots: z.number().optional(),
+    SoT: z.number().optional(),
+    PassCmp: z.number().optional(),
+    PassAtt: z.number().optional(),
+    PassCmpPct: z.number().optional(),
+    Tkl: z.number().optional(),
+    TklW: z.number().optional(),
+    Blocks: z.number().optional(),
+    Int: z.number().optional(),
+
+    GK_GA: z.number().optional(),
+    GK_Saves: z.number().optional(),
+    GK_SavePct: z.number().optional(),
+    GK_CS: z.number().optional(),
+    GK_PSxG: z.number().optional(),
+    
+    season_code: z.string().optional(),
+  }).passthrough()
+);
+
 export type PlayerDetail = z.infer<typeof PlayerDetailSchema>;
+
+// Schemas auxiliares
+export const PlayerSchema = z.object({
+    player_uuid: z.string(),
+    full_name: z.string(),
+    primary_position: z.string(),
+});
+export const PagedPlayersSchema = z.array(PlayerSchema);
