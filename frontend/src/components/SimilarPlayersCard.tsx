@@ -1,6 +1,6 @@
 // frontend/src/components/SimilarPlayersCard.tsx
 import React from 'react';
-import { useSimilarPlayers, SearchResult } from '../api/hooks';
+import { useSimilarPlayers } from '../api/hooks';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Link } from 'react-router-dom';
 

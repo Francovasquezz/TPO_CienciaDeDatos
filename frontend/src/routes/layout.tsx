@@ -1,6 +1,6 @@
 // frontend/src/routes/layout.tsx (HEADER LIMPIO Y CON OPORTUNIDADES)
 import { Outlet, useLocation } from "react-router-dom";
-import { Home, Settings, Users, TrendingUp } from "lucide-react"; // ⬅️ Nuevo Icono
+import { Home, Settings, TrendingUp } from "lucide-react"; // ⬅️ Nuevo Icono
 import { Trophy } from "lucide-react"; // Usamos Trophy para ligas
 // Array de navegación actualizado
 const navItems = [
