@@ -1,33 +1,35 @@
-// frontend/src/components/PlayerHeader.tsx
 import React from 'react';
 import { PlayerDetail } from '../lib/schemas';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { formatMarketValue } from '../lib/utils'; // Asegúrate de que esto esté importado
+import { formatMarketValue } from '../lib/utils'; // Importamos la nueva función
 
 interface PlayerHeaderProps {
   player: PlayerDetail;
 }
 
 export const PlayerHeader: React.FC<PlayerHeaderProps> = ({ player }) => {
-    // CORRECCIÓN AQUI:
-    // Priorizamos el número real (MarketValueEUR) para poder darle nuestro propio formato.
-    // Solo usamos 'market_value_show' si no hay un número válido (por si el backend manda un texto tipo "Libre").
-    const formattedValue = (player.MarketValueEUR !== null && player.MarketValueEUR !== undefined && player.MarketValueEUR > 0)
-        ? formatMarketValue(player.MarketValueEUR)
-        : (player.market_value_show || 'Sin Cotización');
+  // LÓGICA DE VISUALIZACIÓN DE PRECIO:
+  // 1. Intentamos usar el valor numérico real (MarketValueEUR) formateado.
+  // 2. Si es 0 o null, revisamos si hay un string legacy (market_value_show).
+  // 3. Si no hay nada, mostramos 'Sin Cotización'.
+  const formattedValue = (player.MarketValueEUR && player.MarketValueEUR > 0)
+      ? formatMarketValue(player.MarketValueEUR)
+      : (player.market_value_show || 'Sin Cotización');
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-8 mb-8">
         
-        {/* 1. BLOQUE FOTO */}
+        {/* BLOQUE FOTO */}
         <Card className="bg-zinc-900 border-zinc-800 shadow-xl overflow-hidden max-w-[220px] self-start">
             <CardContent className="p-0 relative">
+                {/* Placeholder de foto */}
                 <div className="w-[220px] h-[260px] bg-zinc-800 flex flex-col items-center justify-center text-zinc-500">
                     <span className="text-4xl font-bold mb-2">{player.player_name.charAt(0)}</span>
                     <span className="text-xs font-mono">FOTO</span>
                 </div>
                 
+                {/* Pie de foto con el equipo */}
                 <div className="bg-zinc-950 p-3 flex items-center justify-center gap-3 border-t border-zinc-800 h-14">
                     <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-xs border border-zinc-700 text-zinc-400">
                         ESC
@@ -39,7 +41,7 @@ export const PlayerHeader: React.FC<PlayerHeaderProps> = ({ player }) => {
             </CardContent>
         </Card>
 
-        {/* 2. BLOQUE INFORMACIÓN */}
+        {/* BLOQUE INFORMACIÓN */}
         <div className="flex flex-col justify-center py-2 space-y-6">
             
             <div>
@@ -56,7 +58,7 @@ export const PlayerHeader: React.FC<PlayerHeaderProps> = ({ player }) => {
                 </div>
             </div>
 
-            {/* VALOR DE MERCADO */}
+            {/* VALOR DE MERCADO DESTACADO */}
             <div className="bg-zinc-900/80 border border-zinc-800 p-5 rounded-xl max-w-md shadow-lg relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-1 h-full bg-blue-600"></div>
                 <p className="text-zinc-500 text-xs uppercase tracking-widest font-semibold mb-1">

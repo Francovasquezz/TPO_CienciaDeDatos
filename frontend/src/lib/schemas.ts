@@ -1,7 +1,5 @@
-// frontend/src/lib/schemas.ts
 import { z } from 'zod';
 
-// Función para capitalizar texto (Ej: "river plate" -> "River Plate")
 export const toTitleCase = (str: string | null | undefined) => {
   if (!str) return '';
   return str.toLowerCase().replace(/(?:^|\s)\w/g, (match) => match.toUpperCase());
@@ -13,25 +11,37 @@ const normalizeBackendData = (data: unknown) => {
   
   const d = data as Record<string, unknown>;
 
+  // CORRECCIÓN AQUÍ: Agregamos 'd.market_value_show' a la lista de prioridad.
+  // Esto captura el "18000000" aunque venga en el campo de texto.
+  const rawValue = d.actual_value_eur 
+    ?? d.MarketValueEUR 
+    ?? d.market_value_eur 
+    ?? d.value 
+    ?? d.market_value_show; // <--- CLAVE: Buscar aquí también
+
+  // Intentamos convertir lo que encontremos a número
+  let numericValue = rawValue ? Number(rawValue) : null;
+
+  // Si la conversión falla (ej: viene texto "Sin cotización"), lo dejamos nulo
+  if (Number.isNaN(numericValue)) {
+    numericValue = null;
+  }
+
   return {
     ...d,
-    // Identificadores
     player_id: d.player_id ?? d.player_uuid,
     player_name: toTitleCase(String(d.player_name ?? d.Player ?? '')),
     
-    // Mapeo de campos básicos
     Pos: d.Pos ?? d.pos ?? d.primary_position,
     Age: d.Age ?? d.age,
     Squad: toTitleCase(String(d.Squad ?? d.squad ?? d.club ?? d.Club ?? d.team ?? '')), 
     Nation: d.Nation ?? d.nation,
     
-    // ⬅️ CORRECCIÓN: Aquí capturamos 'actual_value_eur'
-    MarketValueEUR: d.actual_value_eur ?? d.MarketValueEUR ?? d.market_value_eur ?? d.value,
+    // Asignamos el valor numérico limpio
+    MarketValueEUR: numericValue,
     
-    // Lógica de Arquero
     IsGK: d.IsGK ?? d.isgk ?? d.is_gk ?? false,
     
-    // Stats de Campo
     MatchesPlayed: d.MatchesPlayed ?? d.matchesplayed ?? d.matches_played ?? d.mp,
     Gls: d.Gls ?? d.gls ?? d.goals,
     Ast: d.Ast ?? d.ast ?? d.assists,
@@ -47,7 +57,6 @@ const normalizeBackendData = (data: unknown) => {
     Blocks: d.Blocks ?? d.blocks,
     Int: d.Int ?? d.int ?? d.interceptions,
 
-    // Stats de Arquero
     GK_Saves: d.GK_Saves ?? d.gk_saves,
     GK_GA: d.GK_GA ?? d.gk_ga,
     GK_SavePct: d.GK_SavePct ?? d.gk_savepct,
@@ -71,32 +80,31 @@ export const PlayerDetailSchema = z.preprocess(
     Nation: z.string().optional().nullable(),
     market_value_show: z.union([z.string(), z.number()]).optional().nullable(),
     
-    // Valor de Mercado (puede ser nulo)
+    // Zod recibirá el número limpio gracias a normalizeBackendData
     MarketValueEUR: z.number().nullable().optional(),
     
     IsGK: z.boolean().optional().default(false),
 
-    // Stats (Todas opcionales para evitar errores si faltan)
-    MatchesPlayed: z.number().optional(),
-    Gls: z.number().optional(),
-    Ast: z.number().optional(),
-    xG: z.number().optional(),
-    xAG: z.number().optional(),
-    Shots: z.number().optional(),
-    SoT: z.number().optional(),
-    PassCmp: z.number().optional(),
-    PassAtt: z.number().optional(),
-    PassCmpPct: z.number().optional(),
-    Tkl: z.number().optional(),
-    TklW: z.number().optional(),
-    Blocks: z.number().optional(),
-    Int: z.number().optional(),
+    MatchesPlayed: z.coerce.number().optional(),
+    Gls: z.coerce.number().optional(),
+    Ast: z.coerce.number().optional(),
+    xG: z.coerce.number().optional(),
+    xAG: z.coerce.number().optional(),
+    Shots: z.coerce.number().optional(),
+    SoT: z.coerce.number().optional(),
+    PassCmp: z.coerce.number().optional(),
+    PassAtt: z.coerce.number().optional(),
+    PassCmpPct: z.coerce.number().optional(),
+    Tkl: z.coerce.number().optional(),
+    TklW: z.coerce.number().optional(),
+    Blocks: z.coerce.number().optional(),
+    Int: z.coerce.number().optional(),
 
-    GK_GA: z.number().optional(),
-    GK_Saves: z.number().optional(),
-    GK_SavePct: z.number().optional(),
-    GK_CS: z.number().optional(),
-    GK_PSxG: z.number().optional(),
+    GK_GA: z.coerce.number().optional(),
+    GK_Saves: z.coerce.number().optional(),
+    GK_SavePct: z.coerce.number().optional(),
+    GK_CS: z.coerce.number().optional(),
+    GK_PSxG: z.coerce.number().optional(),
     
     season_code: z.string().optional(),
   }).passthrough()
@@ -104,7 +112,6 @@ export const PlayerDetailSchema = z.preprocess(
 
 export type PlayerDetail = z.infer<typeof PlayerDetailSchema>;
 
-// Schemas auxiliares
 export const PlayerSchema = z.object({
     player_uuid: z.string(),
     full_name: z.string(),
