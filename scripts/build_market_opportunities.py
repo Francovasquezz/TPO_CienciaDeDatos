@@ -1,4 +1,4 @@
-# scripts/build_market_opportunities.py (CORREGIDO v3)
+# scripts/build_market_opportunities.py (SOPORTE GK + FIELD)
 
 import pandas as pd
 import joblib
@@ -6,7 +6,7 @@ import json
 import logging
 import numpy as np
 from pathlib import Path
-from sqlalchemy import create_engine, text # <-- Import text
+from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL
 from dotenv import load_dotenv
 import os
@@ -47,9 +47,6 @@ db_url = URL.create(
     query={"sslmode": DB_SSLMODE, "connect_timeout": DB_CONNECT_TIMEOUT},
 )
 
-log.info("Conectando a la base de datos...")
-log.info(f"→ Conexion: {db_url.render_as_string(hide_password=True)}")
-
 def get_db_connection():
     return create_engine(
         db_url,
@@ -59,15 +56,13 @@ def get_db_connection():
         max_overflow=5,
     )
 
-def fetch_player_data(engine):
+def fetch_all_data(engine):
     """
-    Obtiene todos los datos de la vista para compararlos
+    Obtiene TODOS los jugadores (Field + GK) que cumplan el criterio mínimo.
     """
-    log.info("Obteniendo todos los datos de v_players_union_with_sort...")
+    log.info("Obteniendo datos de v_players_union_with_sort (Field + GK)...")
     
-    # --- INICIO DE LA CORRECCIÓN ---
-    # 1. Cambiamos "Min" por "MatchesPlayed"
-    #    (Asegúrate de que 'v_players_union_with_sort' tiene la columna "MatchesPlayed")
+    # NOTA: Quitamos "pos != 'GK'" para traer a todos.
     sql = text("""
     SELECT 
         player_id, 
@@ -77,117 +72,142 @@ def fetch_player_data(engine):
         league_name,
         season_code,
         latest_mv_eur,
-        age, 
+        "Age", 
         "MatchesPlayed" 
     FROM 
         v_players_union_with_sort
     WHERE
-        pos != 'GK'
+        "MatchesPlayed" >= :min_matches
+        AND latest_mv_eur > 100000
     """)
-    # --- FIN DE LA CORRECCIÓN ---
     
-    df = pd.read_sql(sql, engine)
-    
-    # --- INICIO DE LA CORRECCIÓN ---
-    # 2. Cambiamos el filtro de "Min" a "MatchesPlayed"
-    #    Usamos 5 partidos como filtro mínimo, en lugar de 500 minutos
-    log.info(f"Datos crudos leídos: {len(df)} filas.")
-    df = df[df['MatchesPlayed'] >= 5].copy()
-    # --- FIN DE LA CORRECCIÓN ---
-    
+    # Filtro de 5 partidos mínimo
+    df = pd.read_sql(sql, engine, params={"min_matches": 5})
     df = df.dropna(subset=['latest_mv_eur'])
-    df = df[df['latest_mv_eur'] > 100000] # Solo jugadores con valor > 100k
-    
     df['player_id'] = df['player_id'].astype(str)
     
-    log.info(f"Datos de BD filtrados (>=5 partidos, >100k valor): {len(df)} jugadores.")
+    log.info(f"Total jugadores recuperados (>=5 partidos): {len(df)}")
     return df
 
+def train_and_predict(player_type, df_subset, features_matrix, player_index):
+    """
+    Función genérica para entrenar modelo y predecir oportunidades.
+    player_type: 'field' o 'gk'
+    """
+    if df_subset.empty:
+        log.warning(f"No hay jugadores para el tipo {player_type}.")
+        return pd.DataFrame()
+
+    log.info(f"--- Procesando {player_type.upper()} ({len(df_subset)} jugadores) ---")
+
+    # 1. Alinear datos con el índice del modelo (Matrix)
+    index_df = pd.DataFrame({
+        'player_id': player_index,
+        'matrix_index': range(len(player_index))
+    })
+    
+    # Merge inner: solo jugadores que tengan datos en la DB Y en la matriz de features
+    merged_data = index_df.merge(df_subset, on='player_id', how='inner')
+    
+    if merged_data.empty:
+        log.warning(f"No se pudieron cruzar datos de DB con el índice de {player_type}.")
+        return pd.DataFrame()
+
+    # 2. Preparar X e y
+    X_indices = merged_data['matrix_index'].values
+    X = features_matrix[X_indices]
+    y = np.log1p(merged_data['latest_mv_eur']) # Log del valor real
+    
+    # 3. Entrenar Modelo de Valor (Random Forest)
+    #    Entrenamos un modelo específico para este tipo de jugador (GK o Field)
+    model = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1)
+    model.fit(X, y)
+    
+    # Guardamos el modelo entrenado
+    model_path = MODEL_DIR / f"{player_type}_value_model.joblib"
+    joblib.dump(model, model_path)
+    log.info(f"Modelo {player_type} guardado en {model_path}")
+    
+    # 4. Predecir
+    y_pred_log = model.predict(X)
+    rmse = np.sqrt(mean_squared_error(y, y_pred_log))
+    log.info(f"RMSE (log) para {player_type}: {rmse:.4f}")
+
+    predicted_value = np.expm1(y_pred_log)
+    
+    # 5. Construir DataFrame de resultados
+    results = merged_data.copy()
+    results['predicted_value_eur'] = predicted_value
+    results['actual_value_eur'] = merged_data['latest_mv_eur']
+    results['value_diff_eur'] = results['predicted_value_eur'] - results['actual_value_eur']
+    results['value_ratio'] = results['predicted_value_eur'] / (results['actual_value_eur'] + 1)
+    
+    # Filtramos solo oportunidades positivas
+    opportunities = results[results['value_diff_eur'] > 0].copy()
+    return opportunities
+
 def main():
-    log.info("Iniciando construcción de modelo de valor...")
+    log.info("Iniciando construcción de oportunidades de mercado (Híbrido)...")
     
     try:
-        log.info("Cargando artefactos base (scaler, matrix, index)...")
-        scaler = joblib.load(MODEL_DIR / "field_scaler.joblib")
-        features_matrix = joblib.load(MODEL_DIR / "field_features_matrix.joblib")
-        
-        with open(MODEL_DIR / "field_player_index.json", "r") as f:
-            player_index = json.load(f)
-        
-        log.info(f"Artefactos cargados: {len(player_index)} jugadores en el índice.")
-
         engine = get_db_connection()
-        players_df = fetch_player_data(engine)
+        all_players = fetch_all_data(engine)
         
-        index_df = pd.DataFrame({
-            'player_id': player_index,
-            'matrix_index': range(len(player_index))
-        })
-        
-        merged_data = index_df.merge(players_df, on='player_id', how='inner')
-        
-        if merged_data.empty:
-            log.error("Error: El 'merge' entre el índice del modelo y los datos de la BD no produjo resultados.")
-            log.error("Posibles causas: ¿Los 'player_id' en 'v_players_union_with_sort' coinciden con los del 'field_player_index.json'?")
-            log.error(f"IDs en el índice (muestra): {player_index[:5]}")
-            log.error(f"IDs en la BD (muestra): {players_df['player_id'].head(5).tolist()}")
-            raise RuntimeError("No se pudieron alinear los datos del modelo con la BD.")
-        
-        X_indices = merged_data['matrix_index'].values
-        X = features_matrix[X_indices]
-        y = np.log1p(merged_data['latest_mv_eur'])
-        
-        log.info(f"Datos listos para entrenar. X shape: {X.shape}, y shape: {y.shape}")
+        # --- CARGAR ARTEFACTOS ---
+        # Field
+        log.info("Cargando artefactos FIELD...")
+        field_matrix = joblib.load(MODEL_DIR / "field_features_matrix.joblib")
+        with open(MODEL_DIR / "field_player_index.json", "r") as f:
+            field_index = json.load(f)
+            
+        # GK (Arqueros)
+        log.info("Cargando artefactos GK...")
+        gk_matrix = joblib.load(MODEL_DIR / "gk_features_matrix.joblib")
+        with open(MODEL_DIR / "gk_player_index.json", "r") as f:
+            gk_index = json.load(f)
 
-        log.info("Entrenando RandomForestRegressor para predecir valor...")
-        value_model = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1)
-        value_model.fit(X, y)
+        # --- SEPARAR DATASET ---
+        # Un jugador es GK si su posición contiene 'GK'
+        # Ajusta esto según cómo guardes la posición en tu DB ('GK', 'Goalkeeper', etc.)
+        mask_gk = all_players['pos'].str.contains('GK', case=False, na=False)
         
-        y_pred_log = value_model.predict(X)
-        rmse = np.sqrt(mean_squared_error(y, y_pred_log))
-        log.info(f"RMSE (log-scale) del modelo de valor: {rmse:.4f}")
+        df_gk = all_players[mask_gk].copy()
+        df_field = all_players[~mask_gk].copy()
         
-        joblib.dump(value_model, MODEL_DIR / "field_value_model.joblib")
-        log.info("Modelo de valor guardado en 'models/field_value_model.joblib'")
-
-        log.info("Calculando valor predicho vs valor real...")
-        predicted_value_eur = np.expm1(y_pred_log)
+        # --- EJECUTAR PIPELINES ---
+        opp_field = train_and_predict('field', df_field, field_matrix, field_index)
+        opp_gk = train_and_predict('gk', df_gk, gk_matrix, gk_index)
         
-        results_df = merged_data.copy()
-        results_df['predicted_value_eur'] = predicted_value_eur
-        results_df['actual_value_eur'] = merged_data['latest_mv_eur']
-        results_df['value_diff_eur'] = results_df['predicted_value_eur'] - results_df['actual_value_eur']
-        results_df['value_ratio'] = results_df['predicted_value_eur'] / (results_df['actual_value_eur'] + 1)
-
-        log.info("Filtrando y guardando la lista final...")
-        opportunities = results_df[results_df['value_diff_eur'] > 0].copy()
-        opportunities = opportunities.sort_values(by='value_diff_eur', ascending=False)
+        # --- UNIFICAR Y GUARDAR ---
+        log.info(f"Oportunidades encontradas: Field={len(opp_field)}, GK={len(opp_gk)}")
+        
+        final_df = pd.concat([opp_field, opp_gk], ignore_index=True)
+        final_df = final_df.sort_values(by='value_diff_eur', ascending=False)
         
         final_cols = [
-            'player_id', 'player_name', 'pos', 'club', 'league_name', 'age', 'season_code',
+            'player_id', 'player_name', 'pos', 'club', 'league_name', 'Age', 'season_code',
             'actual_value_eur', 'predicted_value_eur', 'value_diff_eur', 'value_ratio',
-            'MatchesPlayed' # <-- Agregamos esto al JSON final
+            'MatchesPlayed'
         ]
         
-        opportunities = opportunities[final_cols].rename(columns={
+        # Seleccionar y renombrar para el JSON final
+        export_df = final_df[final_cols].rename(columns={
             'player_id': 'player_uuid',
             'player_name': 'full_name',
             'pos': 'primary_position',
             'club': 'team_name',
-            'latest_mv_eur': 'actual_value_eur'
+            'latest_mv_eur': 'actual_value_eur',
+            'Age': 'age'
         })
         
-        top_200_opportunities = opportunities.head(200)
+        # Guardamos top 200 (mezclados)
+        top_200 = export_df.head(200)
         
         output_path = MODEL_DIR / "market_opportunities.json"
-        top_200_opportunities.to_json(output_path, orient='records', indent=2)
+        top_200.to_json(output_path, orient='records', indent=2)
         
-        log.info(f"✅ ¡Éxito! Lista de oportunidades de mercado guardada en '{output_path}'")
+        log.info(f"✅ ¡Éxito! Lista combinada guardada en '{output_path}'")
 
-    except FileNotFoundError as e:
-        log.error(f"Error: No se encontró un archivo. Asegúrate de tener los modelos base.")
-        log.error(f"Ejecuta 'python scripts/build_similarity_model.py' primero.")
-        log.error(e)
     except Exception as e:
         log.error(f"Error inesperado: {e}")
         raise

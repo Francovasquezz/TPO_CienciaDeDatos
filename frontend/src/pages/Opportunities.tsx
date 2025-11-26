@@ -49,7 +49,7 @@ interface OpportunitiesListProps {
 
 const OpportunitiesList: React.FC<OpportunitiesListProps> = ({ position, onBack }) => {
     // Pedimos 100 oportunidades
-    const { data: opportunities, isLoading, isError } = useMarketOpportunities(100); 
+    const { data: opportunities, isLoading, isError } = useMarketOpportunities(200); 
     const navigate = useNavigate();
 
     // Filtrado por Posición
