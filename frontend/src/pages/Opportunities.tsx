@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ArrowLeft, TrendingUp, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-// --- Componente de Tarjeta de Posición (Menú) ---
+// --- Componente de Tarjeta de Posición (Menú Principal) ---
 interface PositionCardProps {
     title: string;
     image: string;
@@ -48,6 +48,7 @@ interface OpportunitiesListProps {
 }
 
 const OpportunitiesList: React.FC<OpportunitiesListProps> = ({ position, onBack }) => {
+    // Pedimos 100 oportunidades
     const { data: opportunities, isLoading, isError } = useMarketOpportunities(100); 
     const navigate = useNavigate();
 
@@ -57,7 +58,7 @@ const OpportunitiesList: React.FC<OpportunitiesListProps> = ({ position, onBack 
     const getPositionLabel = (pos: string) => {
         switch(pos) {
             case 'FW': return 'Delanteros';
-            case 'MF': return 'Mediocentros'; // Cambiado aquí también para el título
+            case 'MF': return 'Mediocentros';
             case 'DF': return 'Defensores';
             case 'GK': return 'Arqueros';
             default: return 'Jugadores';
@@ -90,13 +91,25 @@ const OpportunitiesList: React.FC<OpportunitiesListProps> = ({ position, onBack 
                     <Card 
                         key={player.player_uuid}
                         className="bg-zinc-900 border-zinc-800 hover:border-blue-500 transition-all duration-300 cursor-pointer group hover:shadow-lg hover:shadow-blue-900/20"
-                        onClick={() => navigate(`/player/${player.player_uuid}`)}
+                        // 👇 AQUÍ ESTÁ LA MAGIA PARA PASAR LOS DATOS AL DETALLE
+                        onClick={() => navigate(`/player/${player.player_uuid}`, { 
+                            state: { 
+                                opportunityData: {
+                                    predicted_value: player.predicted_value_eur, // Valor IA
+                                    actual_value: player.actual_value_eur,       // Valor Real (Corregido)
+                                    diff: player.value_diff_eur,                 // Ganancia (Corregido)
+                                    is_opportunity: true
+                                }
+                            } 
+                        })}
                     >
                         <CardContent className="p-4 flex items-center gap-4">
-                            <div className="w-14 h-14 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 font-bold border border-zinc-700 group-hover:border-blue-500/50 transition-colors">
+                            {/* Avatar / Inicial */}
+                            <div className="w-14 h-14 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 font-bold border border-zinc-700 group-hover:border-blue-500/50 transition-colors shrink-0">
                                 {player.full_name.charAt(0)}
                             </div>
                             
+                            {/* Info del Jugador */}
                             <div className="flex-grow min-w-0">
                                 <p className="font-bold text-white text-lg truncate group-hover:text-blue-400 transition-colors">
                                     {player.full_name}
@@ -111,13 +124,21 @@ const OpportunitiesList: React.FC<OpportunitiesListProps> = ({ position, onBack 
                                 </div>
                             </div>
                             
-                            <div className="text-right">
-                                <p className="text-xs text-zinc-500 uppercase mb-0.5">Valor Est.</p>
-                                <p className="text-md font-bold text-green-400">
-                                    {player.market_value_eur 
-                                        ? `€${(player.market_value_eur / 1000000).toFixed(1)}M`
+                            {/* Valores (Corregido para mostrar Value Actual vs IA) */}
+                            <div className="text-right flex flex-col items-end">
+                                <p className="text-xs text-zinc-500 uppercase mb-0.5">Valor Actual</p>
+                                <p className="text-md font-bold text-zinc-300">
+                                    {player.actual_value_eur 
+                                        ? `€${(player.actual_value_eur / 1000000).toFixed(1)}M`
                                         : 'N/A'}
                                 </p>
+                                
+                                {/* Mostrar pequeño el valor de IA para tentar al clic */}
+                                {player.predicted_value_eur && (
+                                    <p className="text-xs text-green-500 font-bold mt-1">
+                                        IA: €{(player.predicted_value_eur / 1000000).toFixed(1)}M
+                                    </p>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
@@ -156,7 +177,7 @@ export const OpportunitiesPage: React.FC = () => {
                 // VISTA 1: Selección de Categoría
                 <div className="space-y-12 animate-in fade-in duration-700">
                     
-                    {/* Encabezado con Explicación Mejorada */}
+                    {/* Encabezado */}
                     <div className="text-center space-y-6 max-w-3xl mx-auto">
                         <h1 className="text-5xl md:text-6xl font-extrabold text-white tracking-tight">
                             Oportunidades de Mercado
@@ -184,7 +205,7 @@ export const OpportunitiesPage: React.FC = () => {
                             onClick={() => setSelectedPosition('FW')}
                         />
                         <PositionCard 
-                            title="MEDIOCENTROS" // ⬅️ CAMBIO APLICADO AQUÍ
+                            title="MEDIOCENTROS" 
                             image={images.MF}
                             onClick={() => setSelectedPosition('MF')}
                         />
