@@ -1,11 +1,11 @@
 // frontend/src/routes/layout.tsx (HEADER LIMPIO Y CON OPORTUNIDADES)
 import { Outlet, useLocation } from "react-router-dom";
 import { Home, Settings, Users, TrendingUp } from "lucide-react"; // ⬅️ Nuevo Icono
-
+import { Trophy } from "lucide-react"; // Usamos Trophy para ligas
 // Array de navegación actualizado
 const navItems = [
     { name: "Home", path: "/", icon: Home },
-    { name: "Players", path: "/players", icon: Users },
+    { name: "Ligas y Clubes", path: "/leagues", icon: Trophy }, // ⬅️ CAMBIADO
     { name: "Oportunidades", path: "/opportunities", icon: TrendingUp }, // ⬅️ Nuevo Botón
     { name: "About", path: "/about", icon: Settings },
 ];

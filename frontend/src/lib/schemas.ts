@@ -1,11 +1,13 @@
 // frontend/src/lib/schemas.ts
 import { z } from 'zod';
 
+// Función para capitalizar texto (Ej: "river plate" -> "River Plate")
 export const toTitleCase = (str: string | null | undefined) => {
   if (!str) return '';
   return str.toLowerCase().replace(/(?:^|\s)\w/g, (match) => match.toUpperCase());
 };
 
+// --- Función de Normalización ---
 const normalizeBackendData = (data: unknown) => {
   if (typeof data !== 'object' || data === null) return data;
   
@@ -13,19 +15,23 @@ const normalizeBackendData = (data: unknown) => {
 
   return {
     ...d,
+    // Identificadores
     player_id: d.player_id ?? d.player_uuid,
     player_name: toTitleCase(String(d.player_name ?? d.Player ?? '')),
-    Pos: d.Pos ?? d.pos,
+    
+    // Mapeo de campos básicos
+    Pos: d.Pos ?? d.pos ?? d.primary_position,
     Age: d.Age ?? d.age,
     Squad: toTitleCase(String(d.Squad ?? d.squad ?? d.club ?? d.Club ?? d.team ?? '')), 
     Nation: d.Nation ?? d.nation,
     
-    // ⬅️ CORRECCIÓN CRÍTICA: Buscamos todas las variantes posibles del valor
-    MarketValueEUR: d.MarketValueEUR ?? d.market_value_eur ?? d.marketvalueeur ?? d.MarketValue ?? d.market_value ?? d.value_eur ?? d.value,
+    // ⬅️ CORRECCIÓN: Aquí capturamos 'actual_value_eur'
+    MarketValueEUR: d.actual_value_eur ?? d.MarketValueEUR ?? d.market_value_eur ?? d.value,
     
+    // Lógica de Arquero
     IsGK: d.IsGK ?? d.isgk ?? d.is_gk ?? false,
     
-    // Stats Campo
+    // Stats de Campo
     MatchesPlayed: d.MatchesPlayed ?? d.matchesplayed ?? d.matches_played ?? d.mp,
     Gls: d.Gls ?? d.gls ?? d.goals,
     Ast: d.Ast ?? d.ast ?? d.assists,
@@ -41,7 +47,7 @@ const normalizeBackendData = (data: unknown) => {
     Blocks: d.Blocks ?? d.blocks,
     Int: d.Int ?? d.int ?? d.interceptions,
 
-    // Stats Arquero
+    // Stats de Arquero
     GK_Saves: d.GK_Saves ?? d.gk_saves,
     GK_GA: d.GK_GA ?? d.gk_ga,
     GK_SavePct: d.GK_SavePct ?? d.gk_savepct,
@@ -52,21 +58,24 @@ const normalizeBackendData = (data: unknown) => {
   };
 };
 
+// --- Schema Real ---
 export const PlayerDetailSchema = z.preprocess(
   normalizeBackendData,
   z.object({
     player_id: z.union([z.string(), z.number()]).transform((val) => String(val)),
     player_name: z.string(),
+    
     Age: z.union([z.number(), z.string()]).optional(),
     Pos: z.string().optional().default("N/A"),
     Squad: z.string().optional().nullable(),
     Nation: z.string().optional().nullable(),
     
-    // Aceptamos null para el valor
+    // Valor de Mercado (puede ser nulo)
     MarketValueEUR: z.number().nullable().optional(),
     
     IsGK: z.boolean().optional().default(false),
 
+    // Stats (Todas opcionales para evitar errores si faltan)
     MatchesPlayed: z.number().optional(),
     Gls: z.number().optional(),
     Ast: z.number().optional(),

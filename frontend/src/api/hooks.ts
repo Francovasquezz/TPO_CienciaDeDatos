@@ -72,3 +72,82 @@ export const useSimilarPlayers = (uuid: string, n: number = 5) => {
         enabled: !!uuid,
     });
 };
+
+// frontend/src/api/hooks.ts
+
+// ... (imports anteriores)
+
+// --- 4. Hook para Oportunidades de Mercado ---
+// Reutilizamos SearchResult porque la estructura es similar (lista de jugadores)
+// Pero idealmente el backend devuelve más datos de 'valor real' vs 'predicho'.
+// Por ahora usamos una interfaz genérica que extienda SearchResult.
+
+export interface MarketOpportunity extends SearchResult {
+    age?: number;
+    market_value_eur?: number | null;
+    predicted_value_eur?: number | null; // Asumo que el backend devuelve esto para oportunidades
+}
+
+const fetchMarketOpportunities = async (limit: number = 50): Promise<MarketOpportunity[]> => {
+    // Endpoint real: /market-opportunities
+    const { data } = await axiosClient.get(`/market-opportunities?limit=${limit}`);
+    return data; 
+};
+
+export const useMarketOpportunities = (limit: number = 50) => {
+    return useQuery({
+        queryKey: ['marketOpportunities', limit],
+        queryFn: () => fetchMarketOpportunities(limit),
+        staleTime: 10 * 60 * 1000, // 10 minutos de cache
+    });
+};
+
+// frontend/src/api/hooks.ts
+
+// ... (imports anteriores)
+
+// --- 5. Hooks para Ligas y Clubes ---
+
+// Obtener lista de nombres de ligas
+const fetchLeagues = async (): Promise<string[]> => {
+    const { data } = await axiosClient.get('/leagues');
+    return data;
+};
+
+export const useLeagues = () => {
+    return useQuery({
+        queryKey: ['leagues'],
+        queryFn: fetchLeagues,
+        staleTime: 24 * 60 * 60 * 1000, // Cache de 24hs (las ligas no cambian seguido)
+    });
+};
+
+// Obtener clubes de una liga
+const fetchClubsByLeague = async (leagueName: string): Promise<string[]> => {
+    // encodeURIComponent es vital porque las ligas tienen espacios
+    const { data } = await axiosClient.get(`/leagues/${encodeURIComponent(leagueName)}/clubs`);
+    return data;
+};
+
+export const useClubsByLeague = (leagueName: string) => {
+    return useQuery({
+        queryKey: ['clubs', leagueName],
+        queryFn: () => fetchClubsByLeague(leagueName),
+        enabled: !!leagueName,
+    });
+};
+
+// Obtener jugadores de un club
+// Reutilizamos la interfaz SearchResult porque devuelve uuid, nombre, posicion
+const fetchPlayersByClub = async (clubName: string): Promise<SearchResult[]> => {
+    const { data } = await axiosClient.get(`/clubs/${encodeURIComponent(clubName)}/players`);
+    return data;
+};
+
+export const usePlayersByClub = (clubName: string) => {
+    return useQuery({
+        queryKey: ['clubPlayers', clubName],
+        queryFn: () => fetchPlayersByClub(clubName),
+        enabled: !!clubName,
+    });
+};
