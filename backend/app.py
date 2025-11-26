@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import List
+from fastapi.middleware.gzip import GZipMiddleware  # ⬅️ 1. Importar esto
 
 # Importamos la configuración optimizada de DB
 from db import get_db, SessionLocal
@@ -48,6 +49,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # --- Endpoints ---
 
