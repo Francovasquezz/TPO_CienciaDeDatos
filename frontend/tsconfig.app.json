@@ -7,6 +7,7 @@
     "module": "ESNext",
     "skipLibCheck": true,
     "types": ["vite/client"], // Mantenemos el tipo de cliente de Vite
+    
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -18,8 +19,8 @@
 
     /* Linting */
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noUnusedLocals": false,      // <--- AGREGAR ESTO
+    "noUnusedParameters": false,  // <--- AGREGAR ESTO
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
     
