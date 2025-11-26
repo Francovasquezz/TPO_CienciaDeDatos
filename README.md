@@ -63,7 +63,8 @@ cd frontend
 npm install
 cd ..
 # Backend (API)
-uvicorn backend.app:app --reload
+cd backend
+uvicorn app:app --reload
 
 # Frontend (en otra terminal)
 cd frontend
