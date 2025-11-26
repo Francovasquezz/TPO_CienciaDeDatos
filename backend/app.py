@@ -6,10 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware # ⬅️ 1. NUEVO IMPORT
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import List
-from .value import MarketValueService 
+from value import MarketValueService 
 
-from .db import get_db, SessionLocal
-from .similarity import SimilarityService
+from db import get_db, SessionLocal
+from similarity import SimilarityService
 
 # Configura logging básico
 logging.basicConfig(level=logging.INFO)
@@ -39,7 +39,7 @@ app = FastAPI(
 # ⬅️ 2. CONFIGURACIÓN DE CORS (Permite que el frontend hable con el backend)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"], # Permite solo a tu frontend local
+    allow_origins=["*"], # Permite solo a tu frontend local
     allow_credentials=True,
     allow_methods=["*"], # Permite todos los métodos (GET, POST, etc.)
     allow_headers=["*"], # Permite todos los headers

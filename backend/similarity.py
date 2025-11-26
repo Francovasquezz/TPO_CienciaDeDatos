@@ -9,7 +9,8 @@ import logging
 import os
 import json
 
-MODEL_DIR = Path("models")
+BASE_DIR = Path(__file__).resolve().parent.parent 
+MODEL_DIR = BASE_DIR / "models"
 
 class SimilarityService:
     def __init__(self, db_session_factory: sessionmaker):

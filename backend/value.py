@@ -4,7 +4,8 @@ import logging
 import json
 from pathlib import Path
 
-MODEL_DIR = Path("models")
+BASE_DIR = Path(__file__).resolve().parent.parent
+MODEL_DIR = BASE_DIR / "models"
 OPPORTUNITIES_FILE = MODEL_DIR / "market_opportunities.json"
 
 class MarketValueService:
