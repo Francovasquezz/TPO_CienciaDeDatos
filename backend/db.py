@@ -1,8 +1,9 @@
-# backend/db.py (CORREGIDO PARA SUPABASE)
+# backend/db.py
 import os
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool # Asegúrate de tener este import
 from urllib.parse import quote_plus
 import logging
 
@@ -22,12 +23,12 @@ else:
     pwd = quote_plus(DB_PASSWORD)
     DB_URL = f"postgresql+psycopg2://{DB_USER}:{pwd}@{DB_HOST}:{DB_PORT}/{DB_NAME}?sslmode={DB_SSLMODE}"
 
-# ⬅️ CORRECCIÓN AQUÍ: Agregamos límites al pool
+# --- CORRECCIÓN FINAL ---
+# Al usar NullPool, ELIMINAMOS pool_size y max_overflow
 engine = create_engine(
     DB_URL, 
     pool_pre_ping=True,
-    pool_size=5,      # Máximo 5 conexiones abiertas fijas
-    max_overflow=0    # No permitir conexiones extra temporales
+    poolclass=NullPool 
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

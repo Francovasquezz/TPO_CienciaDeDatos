@@ -24,7 +24,7 @@ class SimilarityService:
             self.field_features_matrix = joblib.load(MODEL_DIR / "field_features_matrix.joblib")
             
             with open(MODEL_DIR / "field_player_index.json", "r") as f:
-                self.field_player_index = json.load(f) # Lista de IDs (strings o ints)
+                self.field_player_index = json.load(f) # Lista de IDs
 
             # --- 2. CARGA DE MODELOS DE ARQUEROS (GK) ---
             self.gk_scaler = joblib.load(MODEL_DIR / "gk_scaler.joblib")
@@ -38,7 +38,6 @@ class SimilarityService:
 
         except FileNotFoundError as e:
             logging.error(f"Error: No se encontró un archivo del modelo: {e}")
-            logging.error("Asegúrate de haber ejecutado los scripts de entrenamiento (build_similarity_model) correctamente.")
             raise
         except Exception as e:
             logging.error(f"Error al cargar los artefactos: {e}")
@@ -46,8 +45,7 @@ class SimilarityService:
         
     def find_similar_players(self, target_player_uuid: str, n_similar: int = 5):
         """
-        Busca jugadores similares. Detecta automáticamente si es jugador de campo o arquero
-        basándose en qué índice se encuentra el ID.
+        Busca jugadores similares. Detecta automáticamente si es jugador de campo o arquero.
         """
         target_uuid_str = str(target_player_uuid)
         
@@ -74,15 +72,14 @@ class SimilarityService:
             logging.info(f"Jugador {target_uuid_str} identificado como ARQUERO.")
             
         else:
-            raise Exception(f"Jugador {target_player_uuid} no encontrado en ninguno de los índices (Field o GK)")
+            raise Exception(f"Jugador {target_player_uuid} no encontrado en ninguno de los índices")
 
         # Calcular vecinos más cercanos
         try:
             target_features = features_matrix[idx].reshape(1, -1)
-            # n_neighbors = n_similar + 1 porque el primero siempre es el mismo jugador
             distances, indices = model.kneighbors(target_features, n_neighbors=n_similar + 1)
             
-            similar_indices = indices[0][1:] # Excluir el propio jugador (índice 0)
+            similar_indices = indices[0][1:] # Excluir el propio jugador
             similar_uuids = [player_index[i] for i in similar_indices]
             
             logging.info(f"Encontrados {len(similar_uuids)} similares: {similar_uuids}")
@@ -94,10 +91,8 @@ class SimilarityService:
             logging.error(f"Error calculando vecinos: {e}")
             raise
 
+    # 👇 ESTE MÉTODO AHORA ESTÁ INDENTADO DENTRO DE LA CLASE
     def _get_details_for_uuids(self, db: Session, uuids: list):
-        """
-        Obtiene los detalles de una lista de UUIDs.
-        """
         sql = text("""
             SELECT 
                 player_id AS player_uuid,
@@ -118,11 +113,10 @@ class SimilarityService:
         """)
         
         try:
-            # Asegurar que sean enteros para la query SQL si tu DB usa integer IDs
-            uuids_as_int = [int(uid) for uid in uuids]
-            
-            result = db.execute(sql, {"uuids": uuids_as_int})
+            uuids_as_str = [str(uid) for uid in uuids]
+            result = db.execute(sql, {"uuids": uuids_as_str})
             return result.mappings().all()
+            
         except Exception as e:
-            logging.error(f"Error al consultar detalles de UUIDs en la BD: {e}")
-            return []
+            logging.error(f"🔥 ERROR CRÍTICO EN BD: {e}")
+            raise e

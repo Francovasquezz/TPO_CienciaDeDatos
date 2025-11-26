@@ -69,6 +69,7 @@ export const PlayerDetailSchema = z.preprocess(
     Pos: z.string().optional().default("N/A"),
     Squad: z.string().optional().nullable(),
     Nation: z.string().optional().nullable(),
+    market_value_show: z.union([z.string(), z.number()]).optional().nullable(),
     
     // Valor de Mercado (puede ser nulo)
     MarketValueEUR: z.number().nullable().optional(),

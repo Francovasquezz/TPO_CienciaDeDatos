@@ -10,9 +10,11 @@ interface PlayerHeaderProps {
 
 export const PlayerHeader: React.FC<PlayerHeaderProps> = ({ player }) => {
   // Lógica de Valor: Si existe y es mayor a 0, lo formatea. Si no, "Sin Cotización".
-  const formattedValue = (player.MarketValueEUR !== null && player.MarketValueEUR !== undefined && player.MarketValueEUR > 0)
-    ? player.MarketValueEUR.toLocaleString('es-AR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0 }) 
-    : 'Sin Cotización';
+    const formattedValue = player.market_value_show 
+        ? player.market_value_show  // Opción A: Usar el valor directo si viene del backend
+        : (player.MarketValueEUR !== null && player.MarketValueEUR !== undefined && player.MarketValueEUR > 0)
+            ? player.MarketValueEUR.toLocaleString('es-AR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0 }) 
+            : 'Sin Cotización';
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-8 mb-8">
