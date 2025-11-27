@@ -25,7 +25,6 @@ export const PlayerSearchDropdown: React.FC = () => {
         <div className="relative w-full max-w-lg mx-auto">
             <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
             
-            {/* Input estilo Dark Futurista */}
             <Input
                 type="text"
                 placeholder="Busca un jugador (ej: Julián)..."
@@ -36,7 +35,6 @@ export const PlayerSearchDropdown: React.FC = () => {
                 onFocus={() => searchTerm.length > 0 && setSearchTerm(searchTerm)} 
             />
             
-            {/* Dropdown Oscuro */}
             {searchTerm.length > 2 && (
                 <div className="absolute z-50 w-full mt-2 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl max-h-80 overflow-y-auto text-left">
                     
@@ -55,8 +53,13 @@ export const PlayerSearchDropdown: React.FC = () => {
                             onMouseDown={() => handleSelectPlayer(player.player_uuid)} 
                         >
                             <div>
-                                <p className="font-bold text-gray-200 group-hover:text-blue-400 transition-colors">{player.full_name}</p>
-                                <p className="text-xs text-gray-500 uppercase tracking-wide">{player.team_name} • {player.primary_position}</p>
+                                <p className="font-bold text-gray-200 group-hover:text-blue-400 transition-colors capitalize">
+                                    {player.full_name.toLowerCase()}
+                                </p>
+                                {/* CAMBIO: Solo mostramos la posición, sin el club */}
+                                <p className="text-xs text-gray-500 tracking-wide uppercase">
+                                    {player.primary_position}
+                                </p>
                             </div>
                             <span className="text-xs font-medium text-zinc-500 group-hover:text-white transition-colors border border-zinc-700 rounded px-2 py-1">Ver Ficha</span>
                         </div>

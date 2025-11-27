@@ -2,8 +2,6 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usePlayersByClub } from '../api/hooks';
-// ⬅️ ELIMINADO: import { getClubLogoUrl } ...
-import { Card, CardContent } from '@/components/ui/card'; // Mantenemos Card por si acaso, aunque no se usa en el listado simple
 import { ArrowLeft } from 'lucide-react';
 
 export const ClubDetailPage: React.FC = () => {
@@ -19,12 +17,12 @@ export const ClubDetailPage: React.FC = () => {
             </button>
 
             <div className="border-b border-zinc-800 pb-6 flex items-center gap-4">
-                {/* Placeholder de Escudo Grande */}
                 <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center text-3xl border border-zinc-700">
                     🛡️
                 </div>
                 <div>
-                    <h1 className="text-4xl font-extrabold text-white mb-1">{name}</h1>
+                    {/* CAMBIO: Capitalize al nombre del club */}
+                    <h1 className="text-4xl font-extrabold text-white mb-1 capitalize">{name.toLowerCase()}</h1>
                     <p className="text-zinc-400">Plantel Completo • {players?.length || 0} Jugadores</p>
                 </div>
             </div>
@@ -40,12 +38,14 @@ export const ClubDetailPage: React.FC = () => {
                             className="flex items-center justify-between p-4 bg-zinc-900 border border-zinc-800 rounded-lg hover:bg-zinc-800 cursor-pointer group transition-colors"
                         >
                             <div className="flex items-center gap-4">
-                                {/* Avatar de iniciales para el jugador en la lista */}
                                 <div className="w-10 h-10 rounded-full bg-zinc-950 flex items-center justify-center text-zinc-500 font-bold border border-zinc-800 group-hover:border-blue-500/30 transition-colors">
-                                    {player.full_name.charAt(0)}
+                                    {player.full_name.charAt(0).toUpperCase()}
                                 </div>
                                 <div>
-                                    <p className="font-bold text-white group-hover:text-blue-400 transition-colors">{player.full_name}</p>
+                                    {/* CAMBIO: Agregado 'capitalize' */}
+                                    <p className="font-bold text-white group-hover:text-blue-400 transition-colors capitalize">
+                                        {player.full_name.toLowerCase()}
+                                    </p>
                                     <p className="text-xs text-zinc-500">{player.primary_position}</p>
                                 </div>
                             </div>

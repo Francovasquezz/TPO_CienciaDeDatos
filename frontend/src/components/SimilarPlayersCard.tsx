@@ -9,39 +9,45 @@ interface SimilarPlayersCardProps {
 }
 
 export const SimilarPlayersCard: React.FC<SimilarPlayersCardProps> = ({ playerUuid }) => {
-    // Busca 5 jugadores similares
     const { data: similarPlayers, isLoading, isError } = useSimilarPlayers(playerUuid, 5);
 
     if (isLoading) {
-        return <div className="p-4 text-center text-blue-600 font-semibold">Calculando similitud...</div>;
+        return <div className="p-4 text-center text-blue-400 font-semibold animate-pulse">Calculando similitud...</div>;
     }
     
     if (isError) {
-        return <div className="p-4 text-red-500">Error al cargar jugadores similares.</div>;
+        return <div className="p-4 text-red-500 text-center">Error al cargar similares.</div>;
     }
 
     if (!similarPlayers || similarPlayers.length === 0) {
-        return <div className="p-4 text-gray-500">No se encontraron jugadores con un perfil similar.</div>;
+        return <div className="p-4 text-zinc-500 text-center">No se encontraron jugadores similares.</div>;
     }
 
     return (
-        <Card className="mt-6">
+        <Card className="bg-zinc-900 border-zinc-800 h-full">
             <CardHeader>
-                <CardTitle className="text-xl">Jugadores con Perfil Similar</CardTitle>
+                <CardTitle className="text-xl text-white">Jugadores Similares</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="space-y-3">
                     {similarPlayers.map((player) => (
                         <Link 
                             key={player.player_uuid} 
-                            // Navega al detalle del jugador similar
                             to={`/player/${player.player_uuid}`}
-                            className="block p-3 border rounded-lg hover:bg-blue-50 transition-colors"
+                            className="block p-3 border border-zinc-800 rounded-lg hover:bg-zinc-800 hover:border-blue-500/50 transition-all group"
                         >
-                            <p className="font-semibold text-gray-800">{player.full_name}</p>
-                            <div className="flex justify-between text-sm text-gray-600">
-                                <span>{player.team_name} | {player.primary_position}</span>
-                                <span className="font-medium">Valor: {player.market_value_eur?.toLocaleString('es-AR') || 'N/A'}</span>
+                            {/* CAMBIO: Capitalize en nombre */}
+                            <p className="font-semibold text-zinc-200 group-hover:text-blue-400 transition-colors capitalize">
+                                {player.full_name.toLowerCase()}
+                            </p>
+                            <div className="flex justify-between text-sm text-zinc-500 mt-1">
+                                {/* CAMBIO: Capitalize en equipo */}
+                                <span className="capitalize">{player.team_name?.toLowerCase() || 'Sin Club'} | {player.primary_position}</span>
+                                {player.market_value_eur && (
+                                    <span className="font-medium text-green-400">
+                                        €{(player.market_value_eur / 1000000).toFixed(1)}M
+                                    </span>
+                                )}
                             </div>
                         </Link>
                     ))}
