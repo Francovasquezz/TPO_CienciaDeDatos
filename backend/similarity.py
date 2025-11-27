@@ -102,7 +102,8 @@ class SimilarityService:
                 season_code AS season_id,
                 league_name,
                 club AS team_name,
-                latest_mv_eur AS value_eur,
+                -- CAMBIO AQUÍ: Cambiamos el alias de 'value_eur' a 'market_value_eur'
+                latest_mv_eur AS market_value_eur, 
                 "Gls",
                 "Ast",
                 "xG",
