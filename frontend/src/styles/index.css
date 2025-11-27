@@ -48,3 +48,16 @@
     @apply bg-background text-foreground font-sans; /* Fondo negro aplicado aquí */
   }
 }
+/* ... (código existente) ... */
+
+@layer utilities {
+  /* Ocultar scrollbar en Chrome, Safari y Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  /* Ocultar scrollbar en IE, Edge y Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+}
